@@ -1,23 +1,69 @@
 use tcod::colors::Color;
-
-use crate::MAP_WIDTH;
+use crate::{ROOM_MAX_SIZE, ROOM_MIN_SIZE, MAX_ROOMS};
+use crate::object::Object;
 use std::cmp;
+use rand::*;
 
+// note that MAP_WIDTH and MAP_HEIGHT cannot bypass crate::SCREEN_WIDTH and crate::SCREEN_HEIGHT
+pub const MAP_WIDTH: i32 = 80;
+pub const MAP_HEIGHT: i32 = 45;
 pub const DARK_WALL_COLOR: Color = Color {r: 0, g: 0, b: 100};
 pub const DARK_GROUND_COLOR: Color = Color {r: 50, g: 50, b: 150};
 
 pub type Map = Vec<Tile>;
 
+// so accessing (x,y) doesn't get confusing with a one-vector table implementation (line above)
 pub fn get_index(x: i32, y: i32) -> usize {
     (y * MAP_WIDTH + x) as usize
 }
 
-pub fn make_map(width: i32, height: i32) -> Map {
-    let mut map = vec![Tile::wall(); (width*height) as usize];
+// all map creation logic integrated here, handles only 1 screen (map)
+pub fn make_map(player: &mut Object) -> Map {
+    // fill map with blocked tiles
+    let mut map = vec![Tile::wall(); (MAP_WIDTH*MAP_HEIGHT) as usize];
 
-    create_room(Room::new(20, 15, 10, 15), &mut map);
-    create_room(Room::new(50, 15, 10, 15), &mut map);
-    create_h_tunnel(25, 55, 23, &mut map);
+    // create rooms where player is free to move in
+    let mut rooms = Vec::new();
+
+    // create rooms
+    for _ in 0..MAX_ROOMS+1 {
+        let w = rand::rng().random_range(ROOM_MIN_SIZE..ROOM_MAX_SIZE + 1);
+        let h = rand::rng().random_range(ROOM_MIN_SIZE..ROOM_MAX_SIZE + 1);
+        let x = rand::rng().random_range(0..MAP_WIDTH - w);
+        let y = rand::rng().random_range(0..MAP_HEIGHT - h);
+
+        let new_room = Room::new(x, y, w, h);
+
+        if !rooms.iter().any(|other_room| new_room.intersects(other_room)) {
+            rooms.push(new_room);
+        }
+    }
+
+    // carve tunnels
+    for (prev_room, new_room) in rooms.iter().skip(1).zip(rooms.iter()) {
+        let (new_x, new_y) = new_room.center();
+        let (prev_x, prev_y) = prev_room.center();
+
+        if rand::random() {
+            create_h_tunnel(prev_x, new_x, prev_y, &mut map);
+            create_v_tunnel(prev_y, new_y, new_x, &mut map);
+        } else {
+            create_v_tunnel(prev_y, new_y, prev_x, &mut map);
+            create_h_tunnel(prev_x, new_x, new_y, &mut map);
+        }
+    }
+
+    let (player_x, player_y) = match rooms.first() {
+        Some(room) => room.center(),
+        None => (0, 0) // a room is a guaranteed to exist, this isn't much of a recovery solution
+                       // otherwise, maybe panic!() here?
+    };
+
+    // spawn player in the first room generated
+    player.set_x(player_x);
+    player.set_y(player_y);
+
+    rooms.iter().for_each(|room| create_room(*room, &mut map));
 
     map
 }
@@ -30,12 +76,14 @@ pub fn create_room(room: Room, map: &mut Map) {
     }
 }
 
+// horizontal tunnel
 pub fn create_h_tunnel(x1: i32, x2: i32, y: i32, map: &mut Map) {
     for x in cmp::min(x1, x2)..(cmp::max(x1, x2) + 1) {
         map[get_index(x,y)] = Tile::empty();
     }
 }
 
+// vertical tunnel
 pub fn create_v_tunnel(y1: i32, y2: i32, x: i32, map: &mut Map) {
     for y in cmp::min(y1, y2)..(cmp::max(y1, y2) + 1) {
         map[get_index(x, y)] = Tile::empty();
@@ -49,7 +97,7 @@ pub struct Tile {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct Room {
+pub struct Room { // more of a Rectangle
     x1: i32,
     y1: i32,
     x2: i32,
@@ -64,6 +112,17 @@ impl Room {
             x2: x + w,
             y2: y + h
         }
+    }
+
+    pub fn center(&self) -> (i32, i32) {
+        ((self.x1 + self.x2) / 2, (self.y1 + self.y2) / 2)
+    }
+
+    pub fn intersects(&self, target: &Room) -> bool {
+        (self.x1 <= target.x2)
+            && (self.x2 >= target.x1)
+            && (self.y1 <= target.y2)
+            && (self.y2 >= target.y1)
     }
 }
 

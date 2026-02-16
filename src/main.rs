@@ -12,8 +12,9 @@ const SCREEN_WIDTH: i32 = 80;
 const SCREEN_HEIGHT: i32 = 50;
 const FPS: i32 = 20;
 
-const MAP_WIDTH: i32 = 80;
-const MAP_HEIGHT: i32 = 45;
+const ROOM_MAX_SIZE: i32 = 12;
+const ROOM_MIN_SIZE: i32 = 8;
+const MAX_ROOMS: i32 = 15;
 
 struct Tcod {
     root: Root,
@@ -78,16 +79,16 @@ fn main() {
     let con: Offscreen = Offscreen::new(MAP_WIDTH, MAP_HEIGHT);
     let mut tcod = Tcod {root, con};
 
-    let player: Object = Object::new(25, 23, '@', WHITE);
-    let mut game = Game {
-        map: map::make_map(MAP_WIDTH, MAP_HEIGHT)
+    let mut player: Object = Object::new(25, 23, '@', WHITE);
+    let game = Game {
+        map: map::make_map(&mut player)
     };
 
     let mut game_objects = [
         player,
-        Object::new(0, 0, 'T', DARK_RED)
     ];
 
+    // main game loop
     while !tcod.root.window_closed() {
         tcod.con.clear();
         render(&mut tcod, &game, &mut game_objects);

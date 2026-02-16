@@ -18,6 +18,14 @@ impl Object {
         Self { x, y, skin, color }
     }
 
+    pub fn set_x(&mut self, x: i32) {
+        self.x = x;
+    }
+
+    pub fn set_y(&mut self, y: i32) {
+        self.y = y;
+    }
+
     pub fn move_by(&mut self, dx: i32, dy: i32, game: &Game) {
         if (self.y + dy) < MAP_HEIGHT && (self.y + dy) >= 0 // within bounds checks
             && (self.x + dx) < MAP_WIDTH && (self.x + dx) >= 0
