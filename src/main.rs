@@ -36,16 +36,18 @@ struct Game {
     map: Map,
 }
 
-fn render(tcod: &mut Tcod, game: &Game, objects: &[Object], fov_recompute: bool) {
+fn render(tcod: &mut Tcod, game: &mut Game, objects: &[Object], fov_recompute: bool) {
     if fov_recompute {
         let player = &objects[0];
         tcod.fov.compute_fov(player.get_x(), player.get_y(), TORCH_RADIUS, FOV_LIGHT_WALLS, FOV_ALGO);
     }
 
-    for (i, tile) in game.map.iter().enumerate() {
+    for (i, tile) in game.map.iter_mut().enumerate() {
         let (x, y): (i32, i32) = get_coord(i as i32);
+        let visible: bool = tcod.fov.is_in_fov(x, y);
 
-        let color = match (tcod.fov.is_in_fov(x, y), tile.is_sight_blocked()) {
+
+        let color = match (visible, tile.is_sight_blocked()) {
             // not within fov
             (false, true) => COLOR_DARK_WALL,
             (false, false) => COLOR_DARK_GROUND,
@@ -54,12 +56,13 @@ fn render(tcod: &mut Tcod, game: &Game, objects: &[Object], fov_recompute: bool)
             (true, false) => COLOR_LIGHT_GROUND
         };
 
-        tcod.con.set_char_background(
-                x,
-                y,
-                color,
-                BackgroundFlag::Set
-        ); // render map tiles
+        if visible {
+            tile.explore();
+        }
+
+        if tile.is_explored() {
+            tcod.con.set_char_background(x, y, color, BackgroundFlag::Set); // render map tiles
+        }
     }
 
     for object in objects { // render game objects within player's fov
@@ -113,7 +116,7 @@ fn main() {
 
 
     let mut player: Object = Object::new(25, 23, '@', WHITE);
-    let game = Game {
+    let mut game = Game {
         map: map::make_map(&mut player)
     };
 
@@ -133,7 +136,7 @@ fn main() {
         tcod.con.clear();
         let fov_recompute: bool = previous_player_position != game_objects[0].get_coords();
 
-        render(&mut tcod, &game, &mut game_objects, fov_recompute);
+        render(&mut tcod, &mut game, &mut game_objects, fov_recompute);
 
         blit(
             &tcod.con,

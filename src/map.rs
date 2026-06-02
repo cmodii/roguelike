@@ -98,7 +98,8 @@ pub fn create_v_tunnel(y1: i32, y2: i32, x: i32, map: &mut Map) {
 #[derive(Clone, Copy, Debug)]
 pub struct Tile {
     blocked: bool,
-    block_sight: bool
+    block_sight: bool,
+    explored: bool
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -140,17 +141,27 @@ impl Tile {
         self.block_sight
     }
 
+    pub fn is_explored(&self) -> bool {
+        self.explored
+    }
+
+    pub fn explore(&mut self) {
+        self.explored = true;
+    }
+
     pub fn empty() -> Self {
         Tile {
             blocked: false,
-            block_sight: false
+            block_sight: false,
+            explored: false
         }
     }
 
     pub fn wall() -> Self {
         Tile {
             blocked: true,
-            block_sight: true
+            block_sight: true,
+            explored: false
         }
     }
 }
