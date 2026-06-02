@@ -26,6 +26,18 @@ impl Object {
         self.y = y;
     }
 
+    pub fn get_x(&self) -> i32 {
+        self.x
+    }
+
+    pub fn get_y(&self) -> i32 {
+        self.y
+    }
+
+    pub fn get_coords(&self) -> (i32, i32) {
+        (self.x, self.y)
+    }
+
     pub fn move_by(&mut self, dx: i32, dy: i32, game: &Game) {
         if (self.y + dy) < MAP_HEIGHT && (self.y + dy) >= 0 // within bounds checks
             && (self.x + dx) < MAP_WIDTH && (self.x + dx) >= 0

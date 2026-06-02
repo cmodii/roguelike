@@ -1,4 +1,5 @@
 use tcod::colors::Color;
+use tcod::map::FovAlgorithm;
 use crate::{ROOM_MAX_SIZE, ROOM_MIN_SIZE, MAX_ROOMS};
 use crate::object::Object;
 use std::cmp;
@@ -15,6 +16,10 @@ pub type Map = Vec<Tile>;
 // so accessing (x,y) doesn't get confusing with a one-vector table implementation (line above)
 pub fn get_index(x: i32, y: i32) -> usize {
     (y * MAP_WIDTH + x) as usize
+}
+
+pub fn get_coord(i: i32) -> (i32, i32) {
+    (i as i32 % MAP_WIDTH, i as i32 / MAP_WIDTH)
 }
 
 // all map creation logic integrated here, handles only 1 screen (map)
