@@ -1,29 +1,19 @@
-use tcod::colors::Color;
-use tcod::map::FovAlgorithm;
-use crate::{ROOM_MAX_SIZE, ROOM_MIN_SIZE, MAX_ROOMS};
-use crate::object::Object;
+use crate::{PLAYER, ROOM_MAX_SIZE, ROOM_MIN_SIZE, MAX_ROOMS, object::Object};
+use tcod::{colors::{self, Color}, map::FovAlgorithm};
 use std::cmp;
-use rand::*;
+use rand::prelude::*;
 
 // note that MAP_WIDTH and MAP_HEIGHT cannot bypass crate::SCREEN_WIDTH and crate::SCREEN_HEIGHT
 pub const MAP_WIDTH: i32 = 80;
 pub const MAP_HEIGHT: i32 = 45;
+pub const MAX_MONSTER_PER_ROOM: i32 = 3;
 pub const DARK_WALL_COLOR: Color = Color {r: 0, g: 0, b: 100};
 pub const DARK_GROUND_COLOR: Color = Color {r: 50, g: 50, b: 150};
 
 pub type Map = Vec<Tile>;
 
-// so accessing (x,y) doesn't get confusing with a one-vector table implementation (line above)
-pub fn get_index(x: i32, y: i32) -> usize {
-    (y * MAP_WIDTH + x) as usize
-}
-
-pub fn get_coord(i: i32) -> (i32, i32) {
-    (i as i32 % MAP_WIDTH, i as i32 / MAP_WIDTH)
-}
-
 // all map creation logic integrated here, handles only 1 screen (map)
-pub fn make_map(player: &mut Object) -> Map {
+pub fn make_map(objects: &mut Vec<Object>) -> Map {
     // fill map with blocked tiles
     let mut map = vec![Tile::wall(); (MAP_WIDTH*MAP_HEIGHT) as usize];
 
@@ -65,18 +55,42 @@ pub fn make_map(player: &mut Object) -> Map {
     };
 
     // spawn player in the first room generated
-    player.set_x(player_x);
-    player.set_y(player_y);
+    objects[PLAYER].set_pos(player_x, player_y);
 
-    rooms.iter().for_each(|room| create_room(*room, &mut map));
+    rooms.iter().for_each(|room| {
+        create_room(*room, &mut map);
+        generate_monsters(*room, &map, objects);
+    });
 
     map
+}
+
+pub fn generate_monsters(room: Room, map: &Map, objects: &mut Vec<Object>) {
+    let mut rng: ThreadRng = rand::rng();
+    let monster_amount = rng.random_range(0..=MAX_MONSTER_PER_ROOM);
+
+    for _ in 0..monster_amount {
+        let x: i32 = rng.random_range(room.x1+1..room.x2);
+        let y: i32 = rng.random_range(room.y1+1..room.y2);
+
+        if !is_blocked(x, y, map, objects) {
+            let mut monster: Object = match rng.random::<f32>() {
+                0.0..0.3 => Object::new(x, y, 'O', colors::DESATURATED_GREEN, "ORC", true, true),
+                0.3..0.6 => Object::new(x, y, 'T', colors::DARKER_GREEN, "TROLL", true, true),
+                0.6..0.9 => Object::new(x, y, 'S', colors::COPPER, "SKAVEN", true, true),
+                0.9..1.0 => Object::new(x, y, 'D', colors::DARK_CRIMSON, "DEMON", true, true),
+                _ => unreachable!()
+            };
+
+            objects.push(monster);
+        }
+    }
 }
 
 pub fn create_room(room: Room, map: &mut Map) {
     for x in (room.x1 + 1)..room.x2 {
         for y in (room.y1 + 1)..room.y2 {
-            map[get_index(x, y)] = Tile::empty();
+            map[Tile::pos_to_id(x, y)] = Tile::empty();
         }
     }
 }
@@ -84,15 +98,19 @@ pub fn create_room(room: Room, map: &mut Map) {
 // horizontal tunnel
 pub fn create_h_tunnel(x1: i32, x2: i32, y: i32, map: &mut Map) {
     for x in cmp::min(x1, x2)..(cmp::max(x1, x2) + 1) {
-        map[get_index(x,y)] = Tile::empty();
+        map[Tile::pos_to_id(x,y)] = Tile::empty();
     }
 }
 
 // vertical tunnel
 pub fn create_v_tunnel(y1: i32, y2: i32, x: i32, map: &mut Map) {
     for y in cmp::min(y1, y2)..(cmp::max(y1, y2) + 1) {
-        map[get_index(x, y)] = Tile::empty();
+        map[Tile::pos_to_id(x, y)] = Tile::empty();
     }
+}
+
+pub fn is_blocked(x: i32, y: i32, map: &Map, objects: &[Object]) -> bool {
+    map[Tile::pos_to_id(x, y)].is_blocked() || objects.iter().any(|object| object.can_block() && object.pos() == (x,y))
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -163,5 +181,14 @@ impl Tile {
             block_sight: true,
             explored: false
         }
+    }
+
+    // so accessing (x,y) doesn't get confusing with a one-vector table implementation for tiles (line above)
+    pub fn pos_to_id(x: i32, y: i32) -> usize {
+        (y * MAP_WIDTH + x) as usize
+    }
+
+    pub fn id_to_pos(i: i32) -> (i32, i32) {
+        (i as i32 % MAP_WIDTH, i as i32 / MAP_WIDTH)
     }
 }
