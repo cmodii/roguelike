@@ -89,9 +89,12 @@ impl Object {
         }
     }
 
-    pub fn attack(&mut self, target: &mut Object) {
+    pub fn attack(&mut self, target: &mut Object, msg: &mut crate::renderer::Messages) {
         let damage = (self.fighter.map_or(0, |f| f.power) - target.fighter.map_or(0, |f| f.defense)).abs();
-        println!("{} attacks {} for {} points", self.name, target.name, damage);
+        msg.add(
+            format!("{} attacks {} for {} points", self.name, target.name, damage),
+            LIGHTER_CRIMSON
+        );
         match damage {
             d if d > 0 => target.take_damage(d),
             0 => {},

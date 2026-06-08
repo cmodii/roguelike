@@ -6,7 +6,7 @@ use crate::{Tcod, Game, PLAYER, get_mut_two};
 use rand::prelude::*;
 use tcod::colors;
 
-pub fn ai_take_turn(ai_id: usize, tcod: &Tcod, game: &Game, objects: &mut [Object]) {
+pub fn ai_take_turn(ai_id: usize, tcod: &Tcod, game: &mut Game, objects: &mut [Object]) {
     let (ai_x, ai_y) = objects[ai_id].pos();
     if !tcod.fov.is_in_fov(ai_x, ai_y) {return;}
 
@@ -14,7 +14,7 @@ pub fn ai_take_turn(ai_id: usize, tcod: &Tcod, game: &Game, objects: &mut [Objec
         0.0..2.0 => {
             if objects[PLAYER].fighter.map_or(false, |f| f.hp > 0) {
                 if let Some((ai, player)) = get_mut_two(objects, ai_id, PLAYER) {
-                    ai.attack(player);
+                    ai.attack(player, &mut game.messages);
                 } else {
                     eprintln!("attack missed due to split_at_mut() failure");
                 }

@@ -37,7 +37,6 @@ fn player_death(player: &mut Object) {
 }
 
 fn monster_death(monster: &mut Object) {
-    println!("{} is dead!", monster.name);
     monster.skin = '%';
     monster.color = tcod::colors::DARK_RED;
     monster.blocks = false;
