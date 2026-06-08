@@ -1,4 +1,4 @@
-use crate::{PLAYER, ROOM_MAX_SIZE, ROOM_MIN_SIZE, MAX_ROOMS, object::Object};
+use crate::{PLAYER, ROOM_MAX_SIZE, ROOM_MIN_SIZE, MAX_ROOMS, object::Object, components::*, monsters::generate_monsters};
 use tcod::{colors::{self, Color}, map::FovAlgorithm};
 use std::cmp;
 use rand::prelude::*;
@@ -65,28 +65,6 @@ pub fn make_map(objects: &mut Vec<Object>) -> Map {
     map
 }
 
-pub fn generate_monsters(room: Room, map: &Map, objects: &mut Vec<Object>) {
-    let mut rng: ThreadRng = rand::rng();
-    let monster_amount = rng.random_range(0..=MAX_MONSTER_PER_ROOM);
-
-    for _ in 0..monster_amount {
-        let x: i32 = rng.random_range(room.x1+1..room.x2);
-        let y: i32 = rng.random_range(room.y1+1..room.y2);
-
-        if !is_blocked(x, y, map, objects) {
-            let mut monster: Object = match rng.random::<f32>() {
-                0.0..0.3 => Object::new(x, y, 'O', colors::DESATURATED_GREEN, "ORC", true, true),
-                0.3..0.6 => Object::new(x, y, 'T', colors::DARKER_GREEN, "TROLL", true, true),
-                0.6..0.9 => Object::new(x, y, 'S', colors::COPPER, "SKAVEN", true, true),
-                0.9..1.0 => Object::new(x, y, 'D', colors::DARK_CRIMSON, "DEMON", true, true),
-                _ => unreachable!()
-            };
-
-            objects.push(monster);
-        }
-    }
-}
-
 pub fn create_room(room: Room, map: &mut Map) {
     for x in (room.x1 + 1)..room.x2 {
         for y in (room.y1 + 1)..room.y2 {
@@ -110,7 +88,7 @@ pub fn create_v_tunnel(y1: i32, y2: i32, x: i32, map: &mut Map) {
 }
 
 pub fn is_blocked(x: i32, y: i32, map: &Map, objects: &[Object]) -> bool {
-    map[Tile::pos_to_id(x, y)].is_blocked() || objects.iter().any(|object| object.can_block() && object.pos() == (x,y))
+    map[Tile::pos_to_id(x, y)].is_blocked() || objects.iter().any(|object| object.blocks && object.pos() == (x,y))
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -122,10 +100,10 @@ pub struct Tile {
 
 #[derive(Clone, Copy, Debug)]
 pub struct Room { // more of a Rectangle
-    x1: i32,
-    y1: i32,
-    x2: i32,
-    y2: i32
+    pub x1: i32,
+    pub y1: i32,
+    pub x2: i32,
+    pub y2: i32
 }
 
 impl Room {

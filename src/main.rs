@@ -1,14 +1,21 @@
 mod object;
 mod map;
+mod components;
+mod monsters;
+
+use std::cmp;
+use std::hash::Hash;
 
 use tcod::console::*;
 use tcod::colors::*;
 use tcod::input::*;
 use tcod::map::{FovAlgorithm, Map as FovMap};
 
+use crate::monsters::ai_take_turn;
 use crate::object::Object;
 use crate::map::*;
 use crate::PlayerAction::*;
+use crate::components::*;
 
 const SCREEN_WIDTH: i32 = 80;
 const SCREEN_HEIGHT: i32 = 50;
@@ -45,16 +52,30 @@ struct Game {
     map: Map,
 }
 
-fn player_turn(dx: i32, dy: i32, game: &Game, objects: &mut [Object]) {
+fn get_mut_two<T>(vec: &mut [T], i: usize, j: usize) -> Option<(&mut T, &mut T)> {
+    if i == j {return None;}
+    let (first, second) = vec.split_at_mut(cmp::max(i, j));
+    if i < j {
+        Some((&mut first[i], &mut second[0]))
+    } else {
+        Some((&mut second[0], &mut first[j]))
+    }
+}
+
+fn player_take_turn(dx: i32, dy: i32, game: &Game, objects: &mut [Object]) {
     let (target_x, target_y): (i32, i32) = (
         objects[PLAYER].get_x() + dx,
         objects[PLAYER].get_y() + dy
     );
 
-    if let Some(i) = objects.iter().position(|o| o.pos() == (target_x, target_y)) {
-        println!("Interacting with [{:?}] {}", objects[i], objects[i].name);
+    if let Some(i) = objects.iter().position(|o| o.fighter.is_some() && o.pos() == (target_x, target_y)) {
+        if let Some((player, target)) = get_mut_two(objects, PLAYER, i) {
+            player.attack(target);
+        } else {
+            eprintln!("attack missed due to split_at_mut() failure");
+        }
     } else {
-        Object::move_by(PLAYER, dx, dy, game, objects);
+        Object::move_by(PLAYER, dx, dy, &game.map, objects);
     }
 }
 
@@ -87,33 +108,47 @@ fn render(tcod: &mut Tcod, game: &mut Game, objects: &[Object], fov_recompute: b
         }
     }
 
-    for object in objects { // render game objects within player's fov
-        if tcod.fov.is_in_fov(object.get_x(), object.get_y()) {
-            object.draw(&mut tcod.con);
-        }
-    }
+    let mut to_draw: Vec<_> = objects
+        .iter()
+        .filter(|o| tcod.fov.is_in_fov(o.get_x(), o.get_y()))
+        .collect::<Vec<_>>();
 
+    to_draw.sort_by(|o1, o2| o1.blocks.cmp(&o2.blocks));
+
+    to_draw.into_iter()
+           .for_each(|o| o.draw(&mut tcod.con));
+
+    tcod.root.set_default_foreground(WHITE);
+    if let Some(fighter) = objects[PLAYER].fighter {
+        tcod.root.print_ex(
+            1,
+            SCREEN_HEIGHT - 2,
+            BackgroundFlag::None,
+            TextAlignment::Left,
+            format!("HP: {}/{} ", fighter.hp, fighter.max_hp),
+        );
+    }
 }
 
 fn handle_keys(tcod: &mut Tcod, game: &Game, objects: &mut [Object]) -> PlayerAction {
     let key: Key = tcod.root.wait_for_keypress(true);
-    let player_alive: bool = objects[PLAYER].is_alive();
+    let player_alive: bool = objects[PLAYER].alive;
 
     match (key, key.text(), player_alive) {
         (Key {code: KeyCode::Up, ..}, _, true) => {
-            player_turn(0, -1, &game, objects);
+            player_take_turn(0, -1, &game, objects);
             TookTurn
         } // move up
         (Key {code: KeyCode::Down, ..}, _, true) => {
-            player_turn(0, 1, &game, objects);
+            player_take_turn(0, 1, &game, objects);
             TookTurn
         } // move down
         (Key {code: KeyCode::Right, ..}, _, true) => {
-            player_turn(1, 0, &game, objects);
+            player_take_turn(1, 0, &game, objects);
             TookTurn
         } // move right
         (Key {code: KeyCode::Left, ..}, _, true) => {
-            player_turn(-1, 0, &game, objects);
+            player_take_turn(-1, 0, &game, objects);
             TookTurn
         } // move left
         (
@@ -152,13 +187,21 @@ fn main() {
         fov: FovMap::new(MAP_WIDTH, MAP_HEIGHT)
     };
 
-    let player: Object = Object::new(-1, -1, '@', WHITE, "PLAYER", true, true);
+    let mut player: Object = Object::new(-1, -1, '@', WHITE, "PLAYER", true);
+    player.alive = true;
+    player.fighter = Some(Fighter {
+       max_hp: 30,
+       hp: 30,
+       defense: 0,
+       power: 5,
+       on_death: DeathCallback::Player
+    });
+
     let mut game_objects = vec![player];
 
     let mut game = Game {
         map: map::make_map(&mut game_objects)
     };
-
 
     for (i, tile) in game.map.iter().enumerate() {
         let (x, y): (i32, i32) = Tile::id_to_pos(i as i32);
@@ -182,15 +225,21 @@ fn main() {
             (0, 0),
             1.0, 1.0
         );
+
         tcod.root.flush();
 
         previous_player_position = game_objects[PLAYER].pos();
 
-        if handle_keys(&mut tcod, &game, &mut game_objects) == PlayerAction::Exit {
-            break;
+        match handle_keys(&mut tcod, &game, &mut game_objects) {
+            PlayerAction::TookTurn => {
+                for ai_id in 0..game_objects.len() {
+                    if game_objects[ai_id].ai.is_some() {
+                        ai_take_turn(ai_id, &tcod, &game, &mut game_objects);
+                    }
+                }
+            }
+            PlayerAction::DidntTakeTurn => {}
+            PlayerAction::Exit => break
         }
-
-        // AI turn
-        //game_objects.iter().skip(1).filter(|o| o.is_alive()).for_each(|obj| println!("{}'s turn!", obj.name));
     }
 }
