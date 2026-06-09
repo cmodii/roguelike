@@ -1,5 +1,7 @@
 use crate::*;
+
 use tcod::colors::*;
+use tcod::input::Mouse;
 
 const MSG_X: i32 = BAR_WIDTH + 2;
 const MSG_WIDTH: i32 = SCREEN_WIDTH - BAR_WIDTH - 2;
@@ -60,6 +62,7 @@ pub fn render(tcod: &mut Tcod, game: &mut Game, objects: &[Object], fov_recomput
         tcod.fov.compute_fov(player.get_x(), player.get_y(), TORCH_RADIUS, FOV_LIGHT_WALLS, FOV_ALGO);
     }
 
+    // render tiles
     for (i, tile) in game.map.iter_mut().enumerate() {
         let (x, y): (i32, i32) = Tile::id_to_pos(i as i32);
         let visible: bool = tcod.fov.is_in_fov(x, y);
@@ -83,6 +86,7 @@ pub fn render(tcod: &mut Tcod, game: &mut Game, objects: &[Object], fov_recomput
         }
     }
 
+    // render objects
     let mut to_draw: Vec<_> = objects
         .iter()
         .filter(|o| tcod.fov.is_in_fov(o.get_x(), o.get_y()))
@@ -102,6 +106,7 @@ pub fn render(tcod: &mut Tcod, game: &mut Game, objects: &[Object], fov_recomput
         1.0, 1.0
     );
 
+    // render health bar
     tcod.panel.set_default_background(BLACK);
     tcod.panel.clear();
     let (hp, max_hp) = objects[PLAYER].fighter.map_or((0,0), |f| (f.hp, f.max_hp));
@@ -117,6 +122,7 @@ pub fn render(tcod: &mut Tcod, game: &mut Game, objects: &[Object], fov_recomput
         DARK_RED
     );
 
+    // render messages
     let mut y = MSG_HEIGHT as i32;
     for &(ref msg, color) in game.messages.iter().rev() {
         let msg_height = tcod.panel.get_height_rect(MSG_X, y, MSG_WIDTH, 0, msg);
@@ -128,6 +134,26 @@ pub fn render(tcod: &mut Tcod, game: &mut Game, objects: &[Object], fov_recomput
         tcod.panel.print_rect(MSG_X, y, MSG_WIDTH, 0, msg);
     }
 
+
+    // display objects name under mouse hover
+    let (x, y) = (tcod.mouse.cx as i32, tcod.mouse.cy as i32);
+
+    let objects_under_mouse: String = objects
+        .iter()
+        .filter(|obj| obj.pos() == (x,y) && tcod.fov.is_in_fov(x, y))
+        .map(|obj| obj.name.clone())
+        .collect::<Vec<String>>()
+        .join(", ");
+
+    tcod.panel.set_default_foreground(LIGHT_GREY);
+    tcod.panel.print_ex(
+        1,
+        0,
+        BackgroundFlag::None,
+        TextAlignment::Left,
+        objects_under_mouse
+    );
+
     blit(
         &tcod.panel,
         (0, 0),
@@ -137,5 +163,4 @@ pub fn render(tcod: &mut Tcod, game: &mut Game, objects: &[Object], fov_recomput
         1.0,
         1.0,
     );
-
 }

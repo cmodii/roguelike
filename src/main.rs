@@ -9,7 +9,8 @@ use std::hash::Hash;
 
 use tcod::console::*;
 use tcod::colors::*;
-use tcod::input::*;
+use tcod::input::MouseState;
+use tcod::input::{KeyCode, Key, Mouse, Event, self};
 use tcod::map::{FovAlgorithm, Map as FovMap};
 
 use crate::renderer::*;
@@ -52,7 +53,9 @@ struct Tcod {
     root: Root,
     con: Offscreen,
     panel: Offscreen,
-    fov: FovMap
+    fov: FovMap,
+    key: Key,
+    mouse: Mouse
 }
 
 struct Game {
@@ -88,10 +91,10 @@ fn player_take_turn(dx: i32, dy: i32, game: &mut Game, objects: &mut [Object]) {
 }
 
 fn handle_keys(tcod: &mut Tcod, game: &mut Game, objects: &mut [Object]) -> PlayerAction {
-    let key: Key = tcod.root.wait_for_keypress(true);
+    //let key: Key = tcod.root.wait_for_keypress(true);
     let player_alive: bool = objects[PLAYER].alive;
 
-    match (key, key.text(), player_alive) {
+    match (tcod.key, tcod.key.text(), player_alive) {
         (Key {code: KeyCode::Up, ..}, _, true) => {
             player_take_turn(0, -1, game, objects);
             TookTurn
@@ -142,7 +145,9 @@ fn main() {
         root,
         con: Offscreen::new(MAP_WIDTH, MAP_HEIGHT),
         panel: Offscreen::new(MAP_WIDTH, PANEL_HEIGHT),
-        fov: FovMap::new(MAP_WIDTH, MAP_HEIGHT)
+        fov: FovMap::new(MAP_WIDTH, MAP_HEIGHT),
+        key: Default::default(),
+        mouse: Default::default()
     };
 
     let mut player: Object = Object::new(-1, -1, '@', WHITE, "PLAYER", true);
@@ -173,6 +178,13 @@ fn main() {
 
     // main game loop
     while !tcod.root.window_closed() {
+        match input::check_for_event(input::MOUSE | input::KEY) {
+            Some((_, Event::Mouse(m))) => tcod.mouse = m,
+            Some((_, Event::Key(k))) => tcod.key = k,
+            _ => tcod.key = Default::default()
+        }
+
+
         tcod.con.clear();
 
         let fov_recompute: bool = previous_player_position != game_objects[PLAYER].pos();
