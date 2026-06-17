@@ -3,18 +3,18 @@ mod map;
 mod components;
 mod monsters;
 mod renderer;
+mod inventory;
 
 use std::cmp;
-use std::hash::Hash;
 
 use tcod::console::*;
 use tcod::colors::*;
-use tcod::input::MouseState;
 use tcod::input::{KeyCode, Key, Mouse, Event, self};
 use tcod::map::{FovAlgorithm, Map as FovMap};
 
 use crate::renderer::*;
 use crate::monsters::ai_take_turn;
+use crate::inventory::{inventory_menu, pick_item_up, use_item};
 use crate::object::Object;
 use crate::map::*;
 use crate::PlayerAction::*;
@@ -37,6 +37,7 @@ const MAX_ROOMS: i32 = 15;
 const FOV_ALGO: FovAlgorithm = FovAlgorithm::Basic;
 const FOV_LIGHT_WALLS: bool = true;
 const TORCH_RADIUS: i32 = 5;
+
 const COLOR_DARK_WALL: Color = Color { r: 0, g: 0, b: 100 };
 const COLOR_LIGHT_WALL: Color = Color {r: 130, g: 110,b: 50,};
 const COLOR_DARK_GROUND: Color = Color {r: 50,g: 50,b: 150,};
@@ -54,13 +55,13 @@ struct Tcod {
     con: Offscreen,
     panel: Offscreen,
     fov: FovMap,
-    key: Key,
     mouse: Mouse
 }
 
 struct Game {
     map: Map,
-    messages: Messages
+    messages: Messages,
+    inventory: Vec<Object>
 }
 
 fn get_mut_two<T>(vec: &mut [T], i: usize, j: usize) -> Option<(&mut T, &mut T)> {
@@ -90,11 +91,11 @@ fn player_take_turn(dx: i32, dy: i32, game: &mut Game, objects: &mut [Object]) {
     }
 }
 
-fn handle_keys(tcod: &mut Tcod, game: &mut Game, objects: &mut [Object]) -> PlayerAction {
-    //let key: Key = tcod.root.wait_for_keypress(true);
+fn handle_keys(tcod: &mut Tcod, game: &mut Game, objects: &mut Vec<Object>) -> PlayerAction {
+    let key: Key = tcod.root.wait_for_keypress(true);
     let player_alive: bool = objects[PLAYER].alive;
 
-    match (tcod.key, tcod.key.text(), player_alive) {
+    match (key, key.printable, player_alive) {
         (Key {code: KeyCode::Up, ..}, _, true) => {
             player_take_turn(0, -1, game, objects);
             TookTurn
@@ -111,6 +112,25 @@ fn handle_keys(tcod: &mut Tcod, game: &mut Game, objects: &mut [Object]) -> Play
             player_take_turn(-1, 0, game, objects);
             TookTurn
         } // move left
+        (_, 'g', true) => {
+            if let Some(item_id) = objects.iter().position(|obj| obj.pos() == objects[PLAYER].pos() && obj.item.is_some()) {
+                pick_item_up(item_id, game, objects);
+            }
+
+            DidntTakeTurn
+        },
+        (_, 'i', true) => {
+            let inventory_index = inventory_menu(
+                &game.inventory,
+                "Press key next to an item to use, any other key to cancel\n",
+                &mut tcod.root
+            );
+
+            if let Some(inventory_index) = inventory_index {
+                use_item(inventory_index, tcod, game, objects);
+            }
+            DidntTakeTurn
+        },
         (
             Key { // fullscreen toggle
                 code: KeyCode::Control,
@@ -146,7 +166,6 @@ fn main() {
         con: Offscreen::new(MAP_WIDTH, MAP_HEIGHT),
         panel: Offscreen::new(MAP_WIDTH, PANEL_HEIGHT),
         fov: FovMap::new(MAP_WIDTH, MAP_HEIGHT),
-        key: Default::default(),
         mouse: Default::default()
     };
 
@@ -164,7 +183,8 @@ fn main() {
 
     let mut game = Game {
         map: map::make_map(&mut game_objects),
-        messages: Messages::new()
+        messages: Messages::new(),
+        inventory: vec![]
     };
 
     for (i, tile) in game.map.iter().enumerate() {
@@ -178,12 +198,9 @@ fn main() {
 
     // main game loop
     while !tcod.root.window_closed() {
-        match input::check_for_event(input::MOUSE | input::KEY) {
-            Some((_, Event::Mouse(m))) => tcod.mouse = m,
-            Some((_, Event::Key(k))) => tcod.key = k,
-            _ => tcod.key = Default::default()
+        if let Some((_, Event::Mouse(m))) = input::check_for_event(input::MOUSE) {
+            tcod.mouse = m;
         }
-
 
         tcod.con.clear();
 

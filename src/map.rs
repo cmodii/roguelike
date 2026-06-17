@@ -1,4 +1,4 @@
-use crate::{PLAYER, ROOM_MAX_SIZE, ROOM_MIN_SIZE, MAX_ROOMS, object::Object, components::*, monsters::generate_monsters};
+use crate::{MAX_ROOMS, PLAYER, ROOM_MAX_SIZE, ROOM_MIN_SIZE, components::*, inventory::generate_items, monsters::generate_monsters, object::Object};
 use tcod::{colors::{self, Color}, map::FovAlgorithm};
 use std::cmp;
 use rand::prelude::*;
@@ -7,6 +7,7 @@ use rand::prelude::*;
 pub const MAP_WIDTH: i32 = 80;
 pub const MAP_HEIGHT: i32 = 45;
 pub const MAX_MONSTER_PER_ROOM: i32 = 3;
+pub const MAX_ITEMS_PER_ROOM: i32 = 2;
 pub const DARK_WALL_COLOR: Color = Color {r: 0, g: 0, b: 100};
 pub const DARK_GROUND_COLOR: Color = Color {r: 50, g: 50, b: 150};
 
@@ -60,6 +61,7 @@ pub fn make_map(objects: &mut Vec<Object>) -> Map {
     rooms.iter().for_each(|room| {
         create_room(*room, &mut map);
         generate_monsters(*room, &map, objects);
+        generate_items(*room, &map, objects);
     });
 
     map

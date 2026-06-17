@@ -6,6 +6,7 @@ use tcod::input::Mouse;
 const MSG_X: i32 = BAR_WIDTH + 2;
 const MSG_WIDTH: i32 = SCREEN_WIDTH - BAR_WIDTH - 2;
 const MSG_HEIGHT: usize = PANEL_HEIGHT as usize - 1;
+const MAX_MENU_SIZE: usize = 26;
 
 pub struct Messages {
     messages: Vec<(String, Color)>
@@ -163,4 +164,58 @@ pub fn render(tcod: &mut Tcod, game: &mut Game, objects: &[Object], fov_recomput
         1.0,
         1.0,
     );
+}
+
+pub fn menu<T: AsRef<str>>(header: &str, options: &[T], width: i32, root: &mut tcod::console::Root) -> Option<usize> {
+    assert!(
+        options.len() <= MAX_MENU_SIZE,
+        "Menu cannot have more than {} options", MAX_MENU_SIZE
+    );
+
+    let header_height = root.get_height_rect(0, 0, width, SCREEN_HEIGHT, header);
+    let height = options.len() as i32 + header_height;
+
+    let mut window = Offscreen::new(width, height);
+    
+    window.set_default_foreground(WHITE);
+    window.print_rect_ex(
+        0,
+        0,
+        width,
+        height,
+        BackgroundFlag::None,
+        TextAlignment::Left,
+        header,
+    );
+
+    options.iter().enumerate().for_each(|(index, option_txt)| {
+        let menu_letter = (b'a' + index as u8) as char;
+        let text = format!("[{}] {}", menu_letter, option_txt.as_ref());
+
+        window.print_ex(
+            0,
+            header_height + index as i32,
+            BackgroundFlag::None,
+            TextAlignment::Left,
+            text,
+        );
+    });
+
+    let x = SCREEN_WIDTH / 2 - width / 2;
+    let y = SCREEN_HEIGHT / 2 - height / 2;
+    blit(&window, (0, 0), (width, height), root, (x, y), 1.0, 0.7);
+
+    root.flush();
+    let key = root.wait_for_keypress(true);
+
+    if key.printable.is_ascii_alphabetic() {
+        let index: usize = key.printable.to_ascii_lowercase() as usize - 'a' as usize;
+        if index < options.len() {
+            Some(index)
+        } else {
+            None
+        }
+    } else {
+        None
+    }
 }

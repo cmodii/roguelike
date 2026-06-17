@@ -20,6 +20,12 @@ pub enum Ai {
     Basic,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Item {
+    Heal,
+    //Weapon
+}
+
 impl DeathCallback {
     pub fn callback(self, object: &mut Object) {
         use DeathCallback::*;

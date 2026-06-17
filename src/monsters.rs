@@ -44,8 +44,8 @@ pub fn generate_monsters(room: Room, map: &Map, objects: &mut Vec<Object>) {
                     orc.fighter = Some(Fighter {
                         max_hp: 10,
                         hp: 10,
-                        defense: 3,
-                        power: 5,
+                        defense: 2,
+                        power: 4,
                         on_death: DeathCallback::Monster
                     });
                     orc.ai = Some(Ai::Basic);

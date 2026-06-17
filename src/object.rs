@@ -16,7 +16,8 @@ pub struct Object {
     pub blocks: bool,
     pub alive: bool,
     pub fighter: Option<Fighter>,
-    pub ai: Option<Ai>
+    pub ai: Option<Ai>,
+    pub item: Option<Item>
 }
 
 impl Object {
@@ -30,7 +31,8 @@ impl Object {
             blocks: blocks,
             alive: false,
             fighter: None,
-            ai: None
+            ai: None,
+            item: None
         }
     }
 
@@ -78,6 +80,18 @@ impl Object {
         (self.x, self.y)
     }
 
+    pub fn distance_to(&self, other: &Object) -> f32 {
+        let dx = other.x - self.x;
+        let dy = other.y - self.y;
+
+        ((dx.pow(2) + dy.pow(2)) as f32).sqrt()
+    }
+
+    pub fn draw(&self, con: &mut dyn Console) {
+        con.set_default_foreground(self.color);
+        con.put_char(self.x, self.y, self.skin, BackgroundFlag::None);
+    }
+
     pub fn take_damage(&mut self, amount: i32) {
         if let Some(fighter) = self.fighter.as_mut() {
            fighter.hp -= amount;
@@ -102,15 +116,9 @@ impl Object {
         }
     }
 
-    pub fn distance_to(&self, other: &Object) -> f32 {
-        let dx = other.x - self.x;
-        let dy = other.y - self.y;
-
-        ((dx.pow(2) + dy.pow(2)) as f32).sqrt()
-    }
-
-    pub fn draw(&self, con: &mut dyn Console) {
-        con.set_default_foreground(self.color);
-        con.put_char(self.x, self.y, self.skin, BackgroundFlag::None);
+    pub fn heal(&mut self, amount: i32) {
+        if let Some(fighter) = self.fighter.as_mut() {
+            fighter.hp = (fighter.hp + amount).min(fighter.max_hp);
+        }
     }
 }
