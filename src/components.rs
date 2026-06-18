@@ -24,6 +24,7 @@ pub enum Ai {
 pub enum Item {
     Heal,
     StopTime,
+    Lightning,
     //Weapon
 }
 

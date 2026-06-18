@@ -161,6 +161,11 @@ fn handle_keys(tcod: &mut Tcod, game: &mut Game, objects: &mut Vec<Object>) -> P
             }
             DidntTakeTurn
         },
+        (_, 'p', true) => {
+            objects[PLAYER].heal(999);
+            
+            DidntTakeTurn
+        }
         (
             Key { // fullscreen toggle
                 code: KeyCode::Control,

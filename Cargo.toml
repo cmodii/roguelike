@@ -6,3 +6,4 @@ edition = "2024"
 [dependencies]
 tcod = { git = "https://github.com/tomassedovic/tcod-rs.git"}
 rand = "0.10.1"
+itertools = "0.15.0"
