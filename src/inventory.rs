@@ -1,8 +1,8 @@
 use crate::map::{Room, Map, MAX_ITEMS_PER_ROOM, is_blocked};
-use crate::{components::*, PLAYER};
+use crate::{PLAYER, Time, components::*};
 use crate::object::Object;
 
-use crate::{Tcod, Game, renderer};
+use crate::{Tcod, Game, renderer, Time::*};
 use rand::prelude::*;
 use tcod::console::Root;
 use tcod::colors::*;
@@ -11,6 +11,7 @@ pub const INVENTORY_SIZE: usize = 25;
 pub const INVENTORY_WIDTH: i32 = 50;
 
 const HEAL_AMOUNT: i32 = 10;
+const TIME_STOP_DURATION: i32 = 10;
 
 enum UseResult {
     UsedUp,
@@ -41,12 +42,18 @@ pub fn generate_items(room: Room, map: &Map, objects: &mut Vec<Object>) {
 
         if !is_blocked(x, y, map, objects) {
             let item = match rng.random::<f64>() {
-                0.0..1.0 => {
+                0.0..0.7 => {
                     let mut item: Object = Object::new(x, y, '!', VIOLET, "Healing Potion", false);
                     item.item = Some(Item::Heal);
                     
                     item
                 },
+                0.7..1.0 => {
+                    let mut item: Object = Object::new(x, y, 'x', DARKER_RED, "Time stop amulet", false);
+                    item.item = Some(Item::StopTime);
+
+                    item
+                }
                 _ => unreachable!()
             };
 
@@ -60,7 +67,8 @@ pub fn use_item(inventory_id: usize, tcod: &mut Tcod, game: &mut Game, objects: 
 
     if let Some(item) = game.inventory[inventory_id].item {
         let on_use: fn(usize, &mut Tcod, &mut Game, &mut [Object]) -> UseResult = match item {
-            Heal => cast_heal
+            Heal => cast_heal,
+            StopTime => stop_time
         };
 
         match on_use(inventory_id, tcod, game, objects) {
@@ -114,4 +122,23 @@ fn cast_heal(_inventory_id: usize, _tcod: &mut Tcod, game: &mut Game, objects: &
     }
 
     UseResult::Cancelled
+}
+
+// Time stop
+fn stop_time(_inventory_id: usize, _tcod: &mut Tcod, game: &mut Game, _objects: &mut [Object]) -> UseResult {
+    match game.time {
+        Resume(_) => {
+            game.time = Time::Stasis(TIME_STOP_DURATION);
+            game.messages.add(
+                format!("Time has been stopped for {} turns", TIME_STOP_DURATION),
+                LIGHTER_YELLOW
+            );
+
+            return UseResult::UsedUp;
+        }
+        Stasis(_) => {
+            game.messages.add("Time already stopped", WHITE);
+            return UseResult::Cancelled;
+        }
+    }
 }

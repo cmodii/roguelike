@@ -23,6 +23,7 @@ pub enum Ai {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Item {
     Heal,
+    StopTime,
     //Weapon
 }
 

@@ -55,14 +55,6 @@ impl Object {
         Object::move_by(id, dx, dy, map, objects);
     }
 
-    pub fn set_x(&mut self, x: i32) {
-        self.x = x;
-    }
-
-    pub fn set_y(&mut self, y: i32) {
-        self.y = y;
-    }
-
     pub fn get_x(&self) -> i32 {
         self.x
     }

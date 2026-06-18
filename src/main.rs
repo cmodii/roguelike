@@ -38,16 +38,17 @@ const FOV_ALGO: FovAlgorithm = FovAlgorithm::Basic;
 const FOV_LIGHT_WALLS: bool = true;
 const TORCH_RADIUS: i32 = 5;
 
-const COLOR_DARK_WALL: Color = Color { r: 0, g: 0, b: 100 };
-const COLOR_LIGHT_WALL: Color = Color {r: 130, g: 110,b: 50,};
-const COLOR_DARK_GROUND: Color = Color {r: 50,g: 50,b: 150,};
-const COLOR_LIGHT_GROUND: Color = Color {r: 200, g: 180, b: 50,};
-
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum PlayerAction {
     TookTurn,
     DidntTakeTurn,
     Exit
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum Time {
+    Stasis(i32),
+    Resume(i32)
 }
 
 struct Tcod {
@@ -61,7 +62,8 @@ struct Tcod {
 struct Game {
     map: Map,
     messages: Messages,
-    inventory: Vec<Object>
+    inventory: Vec<Object>,
+    time: Time
 }
 
 fn get_mut_two<T>(vec: &mut [T], i: usize, j: usize) -> Option<(&mut T, &mut T)> {
@@ -88,6 +90,34 @@ fn player_take_turn(dx: i32, dy: i32, game: &mut Game, objects: &mut [Object]) {
         }
     } else {
         Object::move_by(PLAYER, dx, dy, &game.map, objects);
+    }
+}
+
+fn process_time(game: &mut Game) {
+    use Time::*;
+    match game.time {
+        Stasis(mut time_left) => {
+            if time_left != -1 {
+                time_left = (time_left - 1).max(-1);
+
+                game.time = if time_left <= 0 {
+                    Resume(-1)
+                } else {
+                    Stasis(time_left)
+                }  
+            }
+        }
+        Resume(mut time_left) => {
+            if time_left != -1 {
+                time_left = (time_left - 1).max(-1);
+
+                game.time = if time_left <= 0 {
+                    Stasis(-1)
+                } else {
+                    Resume(time_left)
+                }  
+            }
+        }
     }
 }
 
@@ -184,7 +214,8 @@ fn main() {
     let mut game = Game {
         map: map::make_map(&mut game_objects),
         messages: Messages::new(),
-        inventory: vec![]
+        inventory: vec![],
+        time: Time::Resume(-1)
     };
 
     for (i, tile) in game.map.iter().enumerate() {
@@ -210,14 +241,18 @@ fn main() {
         tcod.root.flush();
 
         previous_player_position = game_objects[PLAYER].pos();
+        process_time(&mut game);
 
         match handle_keys(&mut tcod, &mut game, &mut game_objects) {
             PlayerAction::TookTurn => {
-                for ai_id in 0..game_objects.len() {
-                    if game_objects[ai_id].ai.is_some() {
-                        ai_take_turn(ai_id, &tcod, &mut game, &mut game_objects);
-                    }
+                if matches!(game.time, Time::Resume(_)) {
+                    for ai_id in 0..game_objects.len() {
+                        if game_objects[ai_id].ai.is_some() {
+                            ai_take_turn(ai_id, &tcod, &mut game, &mut game_objects);
+                        }
+                    }   
                 }
+                
             }
             PlayerAction::DidntTakeTurn => {}
             PlayerAction::Exit => break
