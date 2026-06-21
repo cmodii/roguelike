@@ -18,6 +18,10 @@ pub struct Fighter {
 #[derive(Clone, Debug, PartialEq)]
 pub enum Ai {
     Basic,
+    Confused {
+        previous_ai: Box<Ai>,
+        num_turns: i32
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -25,7 +29,7 @@ pub enum Item {
     Heal,
     StopTime,
     Lightning,
-    //Weapon
+    Confuse
 }
 
 impl DeathCallback {

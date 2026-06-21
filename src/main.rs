@@ -4,21 +4,19 @@ mod components;
 mod monsters;
 mod renderer;
 mod inventory;
-
-use std::cmp;
+mod player;
+mod util;
 
 use tcod::console::*;
 use tcod::colors::*;
-use tcod::input::{KeyCode, Key, Mouse, Event, self};
 use tcod::map::{FovAlgorithm, Map as FovMap};
 
 use crate::renderer::*;
 use crate::monsters::ai_take_turn;
-use crate::inventory::{inventory_menu, pick_item_up, use_item};
 use crate::object::Object;
 use crate::map::*;
-use crate::PlayerAction::*;
 use crate::components::*;
+use crate::player::{PLAYER, PlayerAction, handle_keys};
 
 const SCREEN_WIDTH: i32 = 80;
 const SCREEN_HEIGHT: i32 = 50;
@@ -28,8 +26,6 @@ const BAR_WIDTH: i32 = 20;
 const PANEL_HEIGHT: i32 = 7;
 const PANEL_Y: i32 = SCREEN_HEIGHT - PANEL_HEIGHT;
 
-const PLAYER: usize = 0;
-
 const ROOM_MAX_SIZE: i32 = 12;
 const ROOM_MIN_SIZE: i32 = 8;
 const MAX_ROOMS: i32 = 15;
@@ -37,13 +33,6 @@ const MAX_ROOMS: i32 = 15;
 const FOV_ALGO: FovAlgorithm = FovAlgorithm::Basic;
 const FOV_LIGHT_WALLS: bool = true;
 const TORCH_RADIUS: i32 = 5;
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-enum PlayerAction {
-    TookTurn,
-    DidntTakeTurn,
-    Exit
-}
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum Time {
@@ -56,7 +45,6 @@ struct Tcod {
     con: Offscreen,
     panel: Offscreen,
     fov: FovMap,
-    mouse: Mouse
 }
 
 struct Game {
@@ -64,33 +52,6 @@ struct Game {
     messages: Messages,
     inventory: Vec<Object>,
     time: Time
-}
-
-fn get_mut_two<T>(vec: &mut [T], i: usize, j: usize) -> Option<(&mut T, &mut T)> {
-    if i == j {return None;}
-    let (first, second) = vec.split_at_mut(cmp::max(i, j));
-    if i < j {
-        Some((&mut first[i], &mut second[0]))
-    } else {
-        Some((&mut second[0], &mut first[j]))
-    }
-}
-
-fn player_take_turn(dx: i32, dy: i32, game: &mut Game, objects: &mut [Object]) {
-    let (target_x, target_y): (i32, i32) = (
-        objects[PLAYER].get_x() + dx,
-        objects[PLAYER].get_y() + dy
-    );
-
-    if let Some(i) = objects.iter().position(|o| o.fighter.is_some() && o.pos() == (target_x, target_y)) {
-        if let Some((player, target)) = get_mut_two(objects, PLAYER, i) {
-            player.attack(target, &mut game.messages);
-        } else {
-            eprintln!("attack missed due to split_at_mut() failure");
-        }
-    } else {
-        Object::move_by(PLAYER, dx, dy, &game.map, objects);
-    }
 }
 
 fn process_time(game: &mut Game) {
@@ -121,70 +82,6 @@ fn process_time(game: &mut Game) {
     }
 }
 
-fn handle_keys(tcod: &mut Tcod, game: &mut Game, objects: &mut Vec<Object>) -> PlayerAction {
-    let key: Key = tcod.root.wait_for_keypress(true);
-    let player_alive: bool = objects[PLAYER].alive;
-
-    match (key, key.printable, player_alive) {
-        (Key {code: KeyCode::Up, ..}, _, true) => {
-            player_take_turn(0, -1, game, objects);
-            TookTurn
-        } // move up
-        (Key {code: KeyCode::Down, ..}, _, true) => {
-            player_take_turn(0, 1, game, objects);
-            TookTurn
-        } // move down
-        (Key {code: KeyCode::Right, ..}, _, true) => {
-            player_take_turn(1, 0, game, objects);
-            TookTurn
-        } // move right
-        (Key {code: KeyCode::Left, ..}, _, true) => {
-            player_take_turn(-1, 0, game, objects);
-            TookTurn
-        } // move left
-        (_, 'g', true) => {
-            if let Some(item_id) = objects.iter().position(|obj| obj.pos() == objects[PLAYER].pos() && obj.item.is_some()) {
-                pick_item_up(item_id, game, objects);
-            }
-
-            DidntTakeTurn
-        },
-        (_, 'i', true) => {
-            let inventory_index = inventory_menu(
-                &game.inventory,
-                "Press key next to an item to use, any other key to cancel\n",
-                &mut tcod.root
-            );
-
-            if let Some(inventory_index) = inventory_index {
-                use_item(inventory_index, tcod, game, objects);
-            }
-            DidntTakeTurn
-        },
-        (_, 'p', true) => {
-            objects[PLAYER].heal(999);
-            
-            DidntTakeTurn
-        }
-        (
-            Key { // fullscreen toggle
-                code: KeyCode::Control,
-                alt: true,
-                ..
-            },
-            _,
-            _
-        ) => {
-                let full_state = tcod.root.is_fullscreen();
-                tcod.root.set_fullscreen(!full_state);
-                DidntTakeTurn
-            },
-        (Key {code: KeyCode::Escape, ..}, _, _) => Exit, // exit game
-
-        _ => DidntTakeTurn
-    }
-}
-
 fn main() {
     tcod::system::set_fps(FPS);
 
@@ -201,12 +98,12 @@ fn main() {
         con: Offscreen::new(MAP_WIDTH, MAP_HEIGHT),
         panel: Offscreen::new(MAP_WIDTH, PANEL_HEIGHT),
         fov: FovMap::new(MAP_WIDTH, MAP_HEIGHT),
-        mouse: Default::default()
+        // mouse: Default::default()
     };
 
-    let mut player: Object = Object::new(-1, -1, '@', WHITE, "PLAYER", true);
-    player.alive = true;
-    player.fighter = Some(Fighter {
+    let mut player_object: Object = Object::new(-1, -1, '@', WHITE, "PLAYER", true);
+    player_object.alive = true;
+    player_object.fighter = Some(Fighter {
        max_hp: 30,
        hp: 30,
        defense: 0,
@@ -214,7 +111,7 @@ fn main() {
        on_death: DeathCallback::Player
     });
 
-    let mut game_objects = vec![player];
+    let mut game_objects = vec![player_object];
 
     let mut game = Game {
         map: map::make_map(&mut game_objects),
@@ -223,21 +120,16 @@ fn main() {
         time: Time::Resume(-1)
     };
 
+    game.messages.add("Welcome player to the dungeon!", YELLOW);
+    let mut previous_player_position: (i32, i32) = (-1, -1);
+    
     for (i, tile) in game.map.iter().enumerate() {
         let (x, y): (i32, i32) = Tile::id_to_pos(i as i32);
         tcod.fov.set(x, y, !tile.is_sight_blocked(), !tile.is_blocked());
     }
 
-    game.messages.add("Welcome player to the dungeon!", YELLOW);
-
-    let mut previous_player_position: (i32, i32) = (-1, -1);
-
     // main game loop
     while !tcod.root.window_closed() {
-        if let Some((_, Event::Mouse(m))) = input::check_for_event(input::MOUSE) {
-            tcod.mouse = m;
-        }
-
         tcod.con.clear();
 
         let fov_recompute: bool = previous_player_position != game_objects[PLAYER].pos();

@@ -140,7 +140,7 @@ pub fn render(tcod: &mut Tcod, game: &mut Game, objects: &[Object], fov_recomput
     }
 
 
-    // display objects name under mouse hover
+    /* display objects name under mouse hover
     let (x, y) = (tcod.mouse.cx as i32, tcod.mouse.cy as i32);
 
     let objects_under_mouse: String = objects
@@ -158,6 +158,7 @@ pub fn render(tcod: &mut Tcod, game: &mut Game, objects: &[Object], fov_recomput
         TextAlignment::Left,
         objects_under_mouse
     );
+    */
 
     blit(
         &tcod.panel,

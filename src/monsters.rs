@@ -1,14 +1,29 @@
 use crate::map::{Room, Map, MAX_MONSTER_PER_ROOM, is_blocked};
 use crate::components::*;
 use crate::object::Object;
+use crate::util::*;
+use crate::{Tcod, Game, PLAYER};
 
-use crate::{Tcod, Game, PLAYER, get_mut_two};
 use rand::prelude::*;
 use tcod::colors;
 
 pub fn ai_take_turn(ai_id: usize, tcod: &Tcod, game: &mut Game, objects: &mut [Object]) {
+    if let Some(ai) = objects[ai_id].ai.take() {
+        objects[ai_id].ai = Some(
+            match ai {
+                Ai::Basic => ai_basic(ai_id, tcod, game, objects),
+                Ai::Confused { 
+                    previous_ai, 
+                    num_turns 
+                } => ai_confused(ai_id, game, objects, previous_ai, num_turns)
+            }
+        )
+    }
+}
+
+fn ai_basic(ai_id: usize, tcod: &Tcod, game: &mut Game, objects: &mut [Object]) -> Ai {
     let (ai_x, ai_y) = objects[ai_id].pos();
-    if !tcod.fov.is_in_fov(ai_x, ai_y) {return;}
+    if !tcod.fov.is_in_fov(ai_x, ai_y) {return Ai::Basic;}
 
     match objects[ai_id].distance_to(&objects[PLAYER]) {
         0.0..2.0 => {
@@ -25,6 +40,34 @@ pub fn ai_take_turn(ai_id: usize, tcod: &Tcod, game: &mut Game, objects: &mut [O
             Object::move_towards(ai_id, player_x, player_y, &game.map, objects);
         }
         _ => {}
+    }
+
+    Ai::Basic
+}
+
+fn ai_confused(
+    ai_id: usize,
+    game: &mut Game, 
+    objects: &mut [Object], 
+    previous_ai: Box<Ai>, 
+    num_turns: i32
+) -> Ai
+{
+    if num_turns >= 0 {
+        Object::move_by(
+            ai_id, 
+            rand::random_range(-1..=2), 
+            rand::random_range(-1..=2), 
+            &game.map, 
+            objects
+        );
+
+        Ai::Confused { 
+            previous_ai: previous_ai,
+            num_turns: num_turns - 1 
+        }
+    } else {
+        *previous_ai
     }
 }
 

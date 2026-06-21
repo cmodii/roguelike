@@ -15,6 +15,8 @@ const HEAL_AMOUNT: i32 = 10;
 const TIME_STOP_DURATION: i32 = 10;
 const LIGHTNING_RANGE: i32 = 5;
 const LIGHTNING_DAMAGE: i32 = 6;
+const CONFUSION_RANGE: i32 = 10;
+const CONFUSION_LENGTH: i32 = 5;
 
 enum UseResult {
     UsedUp,
@@ -52,16 +54,22 @@ pub fn generate_items(room: Room, map: &Map, objects: &mut Vec<Object>) {
                     
                     item
                 },
-                0.7..1.0 => {
+                0.5..0.7 => {
                     let mut item: Object = Object::new(x, y, 'x', DARKER_RED, "Time stop amulet", false);
                     item.item = Some(Item::StopTime);
 
                     item
                 }
-                */
-                0.0..1.0 => {
+                0.7..1.0 => {
                     let mut item: Object = Object::new(x, y, '#', LIGHT_YELLOW, "Scroll: Lightning bolt", false);
                     item.item = Some(Item::Lightning);
+                    
+                    item
+                }
+                */
+                0.0..1.0 => {
+                    let mut item: Object = Object::new(x, y, '#', LIGHTER_TURQUOISE, "Scroll: Confusion", false);
+                    item.item = Some(Item::Confuse);
                     
                     item
                 }
@@ -81,6 +89,7 @@ pub fn use_item(inventory_id: usize, tcod: &mut Tcod, game: &mut Game, objects: 
             Heal => cast_heal,
             StopTime => stop_time,
             Lightning => cast_lightning,
+            Confuse => cast_confusion
         };
 
         match on_use(inventory_id, tcod, game, objects) {
@@ -187,5 +196,43 @@ fn cast_lightning(_inventory_id: usize, tcod: &mut Tcod, game: &mut Game, object
         UseResult::UsedUp
     } else {
         UseResult::Cancelled
+    }
+}
+
+fn cast_confusion(_inventory_id: usize, tcod: &mut Tcod, game: &mut Game, objects: &mut [Object]) -> UseResult {
+    if let Some(target_id) = closest_monster(tcod, objects, CONFUSION_RANGE) {
+        let old_ai: Ai = objects[target_id].ai.take().unwrap_or(Ai::Basic);
+
+        objects[target_id].ai = Some(
+            Ai::Confused { 
+                previous_ai: Box::new(old_ai), 
+                num_turns: CONFUSION_LENGTH
+            }
+        );
+        
+        game.messages.add(
+            format!("Confusion takes effect on {} for {} turns", objects[target_id].name, CONFUSION_LENGTH),
+            LIGHT_BLUE
+        );
+
+        UseResult::UsedUp
+    } else {
+
+        UseResult::Cancelled
+    }
+
+}
+
+pub fn drop_item(inventory_id: usize, game: &mut Game, objects: &mut Vec<Object>) {
+    if inventory_id < objects.len() {
+        let mut item: Object = game.inventory.remove(inventory_id);
+        item.set_pos(objects[PLAYER].get_x(), objects[PLAYER].get_y());
+        
+        game.messages.add(
+            format!("You dropped {}", item.name), 
+            YELLOW
+        );
+        
+        objects.push(item);
     }
 }
