@@ -62,6 +62,14 @@ pub fn make_map(objects: &mut Vec<Object>) -> Map {
         generate_items(*room, &map, objects);
     });
 
+    let (stairs_x, stairs_y): (i32, i32) = rooms.last()
+        .expect("No final room exists. make_map() should guarantee at least one room")
+        .center();
+
+    objects.push(
+        Object::new(stairs_x, stairs_y, '<', tcod::colors::WHITE, "stairs", false)
+    );
+
     map
 }
 

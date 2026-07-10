@@ -21,7 +21,8 @@ pub struct Game {
     pub map: Map,
     pub messages: Messages,
     pub inventory: Vec<Object>,
-    pub time: Time
+    pub time: Time,
+    pub level: u32
 }
 
 
@@ -85,7 +86,8 @@ pub fn new_game(tcod: &mut Tcod) -> (Game, Vec<Object>) {
         map: make_map(&mut objects),
         messages: Messages::new(),
         inventory: vec![],
-        time: Time::Resume(-1)
+        time: Time::Resume(-1),
+        level: 1
     };
 
     initialise_fov(tcod, &game.map);
@@ -99,6 +101,15 @@ pub fn initialise_fov(tcod: &mut Tcod, map: &Map) {
         let (x, y): (i32, i32) = Tile::id_to_pos(i as i32);
         tcod.fov.set(x, y, !tile.is_sight_blocked(), !tile.is_blocked());
     }
+}
+
+pub fn next_level(tcod: &mut Tcod, game: &mut Game, objects: &mut Vec<Object>) {
+    objects.truncate(1);
+    game.level += 1;
+    game.map = make_map(objects);
+    game.messages.add("You descend deeper into the dungeon..", DARK_YELLOW);
+    
+    initialise_fov(tcod, &game.map);
 }
 
 fn save_game(game: &Game, objects: &[Object]) -> Result<(), Box<dyn Error>> {

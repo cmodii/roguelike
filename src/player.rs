@@ -1,4 +1,6 @@
+use crate::game::next_level;
 use crate::object::Object;
+use crate::renderer::menu;
 use crate::{Tcod, Game};
 use crate::util::*;
 use crate::inventory::{pick_item_up, drop_item, use_item, inventory_menu};
@@ -87,6 +89,23 @@ pub fn handle_keys(tcod: &mut Tcod, game: &mut Game, objects: &mut Vec<Object>) 
         },
         (_, 'p', true) => {
             objects[PLAYER].heal(999);
+            
+            DidntTakeTurn
+        }
+        (_, 'e', true) => {
+            if objects.iter().any(|obj| obj.name == "stairs" && obj.pos() == objects[PLAYER].pos()) {
+                let choice = menu(
+                    "Descend into the next level? (you cannot return)", 
+                    &["Yes", "No"], 
+                    50, 
+                    &mut tcod.root
+                );
+
+                match choice {
+                    Some(0) => next_level(tcod, game, objects),
+                    _ => {}
+                }
+            }
             
             DidntTakeTurn
         }
