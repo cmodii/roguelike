@@ -1,3 +1,5 @@
+use serde::{Serialize, Deserialize};
+
 use tcod::colors::*;
 use tcod::console::*;
 
@@ -6,7 +8,7 @@ use crate::{MAP_HEIGHT, MAP_WIDTH};
 use crate::components::*;
 
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Object {
     x: i32,
     y: i32,

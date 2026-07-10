@@ -34,10 +34,10 @@ pub fn player_take_turn(dx: i32, dy: i32, game: &mut Game, objects: &mut [Object
 
 pub fn handle_keys(tcod: &mut Tcod, game: &mut Game, objects: &mut Vec<Object>) -> PlayerAction {
     use PlayerAction::*;
-    let key: Key = tcod.root.wait_for_keypress(true);
+    //let key: Key = tcod.root.wait_for_keypress(true);
     let player_alive: bool = objects[PLAYER].alive;
 
-    match (key, key.printable, player_alive) {
+    match (tcod.key, tcod.key.printable, player_alive) {
         (Key {code: KeyCode::Up, ..}, _, true) => {
             player_take_turn(0, -1, game, objects);
             TookTurn

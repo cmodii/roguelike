@@ -1,6 +1,7 @@
-use crate::{MAX_ROOMS, PLAYER, ROOM_MAX_SIZE, ROOM_MIN_SIZE, inventory::generate_items, monsters::generate_monsters, object::Object};
+use crate::{MAX_ROOMS, player::PLAYER, ROOM_MAX_SIZE, ROOM_MIN_SIZE, inventory::generate_items, monsters::generate_monsters, object::Object};
 use std::cmp;
 use rand::prelude::*;
+use serde::{Serialize, Deserialize};
 
 // note that MAP_WIDTH and MAP_HEIGHT cannot bypass crate::SCREEN_WIDTH and crate::SCREEN_HEIGHT
 pub const MAP_WIDTH: i32 = 80;
@@ -90,7 +91,7 @@ pub fn is_blocked(x: i32, y: i32, map: &Map, objects: &[Object]) -> bool {
     map[Tile::pos_to_id(x, y)].is_blocked() || objects.iter().any(|object| object.blocks && object.pos() == (x,y))
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct Tile {
     blocked: bool,
     block_sight: bool,

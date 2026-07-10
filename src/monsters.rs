@@ -2,7 +2,7 @@ use crate::map::{Room, Map, MAX_MONSTER_PER_ROOM, is_blocked};
 use crate::components::*;
 use crate::object::Object;
 use crate::util::*;
-use crate::{Tcod, Game, PLAYER};
+use crate::{Tcod, Game, player::PLAYER};
 
 use rand::prelude::*;
 use tcod::colors;

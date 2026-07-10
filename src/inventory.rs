@@ -1,8 +1,8 @@
 use crate::map::{Room, Map, MAX_ITEMS_PER_ROOM, is_blocked};
-use crate::{PLAYER, Time, components::*};
+use crate::{player::PLAYER, game::Time, components::*};
 use crate::object::Object;
 
-use crate::{Tcod, Game, renderer, Time::*};
+use crate::{Tcod, Game, renderer, game::Time::*};
 use itertools::Itertools;
 use rand::prelude::*;
 use tcod::console::Root;

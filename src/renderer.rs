@@ -1,6 +1,6 @@
-use crate::*;
-
+use serde::{Serialize, Deserialize};
 use tcod::colors::*;
+use crate::{*, player::PLAYER};
 
 const MSG_X: i32 = BAR_WIDTH + 2;
 const MSG_WIDTH: i32 = SCREEN_WIDTH - BAR_WIDTH - 2;
@@ -12,6 +12,7 @@ const COLOR_LIGHT_WALL: Color = Color {r: 130, g: 110,b: 50,};
 const COLOR_DARK_GROUND: Color = Color {r: 50,g: 50,b: 150,};
 const COLOR_LIGHT_GROUND: Color = Color {r: 200, g: 180, b: 50,};
 
+#[derive(Serialize, Deserialize)]
 pub struct Messages {
     messages: Vec<(String, Color)>
 }
@@ -140,7 +141,6 @@ pub fn render(tcod: &mut Tcod, game: &mut Game, objects: &[Object], fov_recomput
     }
 
 
-    /* display objects name under mouse hover
     let (x, y) = (tcod.mouse.cx as i32, tcod.mouse.cy as i32);
 
     let objects_under_mouse: String = objects
@@ -158,7 +158,6 @@ pub fn render(tcod: &mut Tcod, game: &mut Game, objects: &[Object], fov_recomput
         TextAlignment::Left,
         objects_under_mouse
     );
-    */
 
     blit(
         &tcod.panel,
@@ -177,7 +176,7 @@ pub fn menu<T: AsRef<str>>(header: &str, options: &[T], width: i32, root: &mut t
         "Menu cannot have more than {} options", MAX_MENU_SIZE
     );
 
-    let header_height = root.get_height_rect(0, 0, width, SCREEN_HEIGHT, header);
+    let header_height = if header.is_empty() {0} else {root.get_height_rect(0, 0, width, SCREEN_HEIGHT, header)};
     let height = options.len() as i32 + header_height;
 
     let mut window = Offscreen::new(width, height);
@@ -223,4 +222,9 @@ pub fn menu<T: AsRef<str>>(header: &str, options: &[T], width: i32, root: &mut t
     } else {
         None
     }
+}
+
+pub fn msgbox(text: &str, width: i32, root: &mut Root) {
+    let options: &[&str] = &[];
+    menu(text, options, width, root);
 }
