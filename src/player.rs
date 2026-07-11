@@ -8,7 +8,8 @@ use crate::inventory::{pick_item_up, drop_item, use_item, inventory_menu};
 use tcod::input::{Key, KeyCode};
 
 pub const PLAYER: usize = 0;
-
+pub const LEVEL_UP_INITIAL: i32 = 200;
+pub const LEVEL_UP_FACTOR: i32 = 150;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum PlayerAction {

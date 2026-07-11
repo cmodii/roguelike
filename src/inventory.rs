@@ -1,6 +1,6 @@
 use crate::map::{Room, Map, MAX_ITEMS_PER_ROOM, is_blocked};
 use crate::{player::PLAYER, game::Time, components::*};
-use crate::object::Object;
+use crate::object::{Object, ObjectBuilder};
 
 use crate::{Tcod, Game, renderer, game::Time::*};
 use itertools::Itertools;
@@ -47,31 +47,41 @@ pub fn generate_items(room: Room, map: &Map, objects: &mut Vec<Object>) {
 
         if !is_blocked(x, y, map, objects) {
             let item = match rng.random::<f64>() {
-                /*
                 0.0..0.5 => {
-                    let mut item: Object = Object::new(x, y, '!', VIOLET, "Healing Potion", false);
-                    item.item = Some(Item::Heal);
-                    
-                    item
+                    ObjectBuilder::new()
+                        .pos(x, y)
+                        .skin('!')
+                        .color(VIOLET)
+                        .name("Healing Potion")
+                        .item(Item::Heal)
+                        .build()
                 },
                 0.5..0.7 => {
-                    let mut item: Object = Object::new(x, y, 'x', DARKER_RED, "Time stop amulet", false);
-                    item.item = Some(Item::StopTime);
-
-                    item
+                    ObjectBuilder::new()
+                        .pos(x, y)
+                        .skin('x')
+                        .color(DARKER_RED)
+                        .name("Time stop amulet")
+                        .item(Item::StopTime)
+                        .build()
                 }
                 0.7..1.0 => {
-                    let mut item: Object = Object::new(x, y, '#', LIGHT_YELLOW, "Scroll: Lightning bolt", false);
-                    item.item = Some(Item::Lightning);
-                    
-                    item
+                    ObjectBuilder::new()
+                        .pos(x, y)
+                        .skin('#')
+                        .color(LIGHT_YELLOW)
+                        .name("Scroll: Lightning bolt")
+                        .item(Item::Lightning)
+                        .build()
                 }
-                */
                 0.0..1.0 => {
-                    let mut item: Object = Object::new(x, y, '#', LIGHTER_TURQUOISE, "Scroll: Confusion", false);
-                    item.item = Some(Item::Confuse);
-                    
-                    item
+                    ObjectBuilder::new()
+                        .pos(x, y)
+                        .skin('#')
+                        .color(LIGHTER_TURQUOISE)
+                        .name("Scroll: Confusion")
+                        .item(Item::Confuse)
+                        .build()
                 }
                 _ => unreachable!()
             };
@@ -192,7 +202,9 @@ fn cast_lightning(_inventory_id: usize, tcod: &mut Tcod, game: &mut Game, object
             LIGHT_BLUE
         );
 
-        objects[target_id].take_damage(LIGHTNING_DAMAGE);
+        if let Some(xp) = objects[target_id].take_damage(LIGHTNING_DAMAGE) {
+            objects[PLAYER].fighter.as_mut().unwrap().xp += xp;
+        }
         UseResult::UsedUp
     } else {
         UseResult::Cancelled

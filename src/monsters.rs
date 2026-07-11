@@ -1,6 +1,6 @@
 use crate::map::{Room, Map, MAX_MONSTER_PER_ROOM, is_blocked};
 use crate::components::*;
-use crate::object::Object;
+use crate::object::{Object, ObjectBuilder};
 use crate::util::*;
 use crate::{Tcod, Game, player::PLAYER};
 
@@ -82,60 +82,80 @@ pub fn generate_monsters(room: Room, map: &Map, objects: &mut Vec<Object>) {
         if !is_blocked(x, y, map, objects) {
             let mut monster: Object = match rng.random::<f32>() {
                 0.0..0.3 => {
-                    let mut orc: Object = Object::new(x, y, 'O', colors::DESATURATED_GREEN, "ORC", true);
-                    orc.alive = true;
-                    orc.fighter = Some(Fighter {
-                        max_hp: 10,
-                        hp: 10,
-                        defense: 2,
-                        power: 4,
-                        on_death: DeathCallback::Monster
-                    });
-                    orc.ai = Some(Ai::Basic);
-
-                    orc
+                    ObjectBuilder::new()
+                        .pos(x, y)
+                        .skin('O')
+                        .color(colors::DESATURATED_GREEN)
+                        .name("ORC")
+                        .alive(true)
+                        .blocks(true)
+                        .fighter(Fighter {
+                            max_hp: 10,
+                            hp: 10,
+                            defense: 2,
+                            power: 4,
+                            xp: 100,
+                            on_death: DeathCallback::Monster
+                        })
+                        .ai(Ai::Basic)
+                        .build()
                 },
                 0.3..0.6 => {
-                    let mut troll: Object = Object::new(x, y, 'T', colors::DARKER_GREEN, "TROLL", true);
-                    troll.alive = true;
-                    troll.fighter = Some(Fighter {
-                        max_hp: 5,
-                        hp: 5,
-                        defense: 1,
-                        power: 2,
-                        on_death: DeathCallback::Monster
-                    });
-                    troll.ai = Some(Ai::Basic);
-
-                    troll
+                    ObjectBuilder::new()
+                        .pos(x, y)
+                        .skin('T')
+                        .color(colors::DARKER_GREEN)
+                        .name("TROLL")
+                        .alive(true)
+                        .blocks(true)
+                        .fighter(Fighter {
+                            max_hp: 5,
+                            hp: 5,
+                            defense: 1,
+                            power: 2,
+                            xp: 35,
+                            on_death: DeathCallback::Monster
+                        })
+                        .ai(Ai::Basic)
+                        .build()
                 },
                 0.6..0.9 => {
-                    let mut skaven: Object = Object::new(x, y, 'S', colors::COPPER, "SKAVEN", true);
-                    skaven.alive = true;
-                    skaven.fighter = Some(Fighter {
-                        max_hp: 7,
-                        hp: 7,
-                        defense: 2,
-                        power: 3,
-                        on_death: DeathCallback::Monster
-                    });
-                    skaven.ai = Some(Ai::Basic);
-
-                    skaven
+                    ObjectBuilder::new()
+                        .pos(x, y)
+                        .skin('S')
+                        .color(colors::COPPER)
+                        .name("SKAVEN")
+                        .alive(true)
+                        .blocks(true)
+                        .fighter(Fighter {
+                            max_hp: 7,
+                            hp: 7,
+                            defense: 2,
+                            power: 3,
+                            xp: 25,
+                            on_death: DeathCallback::Monster
+                        })
+                        .ai(Ai::Basic)
+                        .build()
                 },
                 0.9..1.0 => {
-                    let mut demon: Object = Object::new(x, y, 'D', colors::DARK_CRIMSON, "DEMON", true);
-                    demon.alive = true;
-                    demon.fighter = Some(Fighter {
-                        max_hp: 15,
-                        hp: 15,
-                        defense: 5,
-                        power: 7,
-                        on_death: DeathCallback::Monster
-                    });
-                    demon.ai = Some(Ai::Basic);
-
-                    demon
+                    ObjectBuilder::new()
+                        .pos(x, y)
+                        .skin('D')
+                        .color(colors::DARK_CRIMSON)
+                        .name("DEMON")
+                        .alive(true)
+                        .blocks(true)
+                        .fighter(Fighter {
+                            max_hp: 15,
+                            hp: 15,
+                            defense: 5,
+                            power: 7,
+                            xp: 250,
+                            on_death: DeathCallback::Monster
+                        })
+                        .ai(Ai::Basic)
+                        .build()
                 },
                 _ => unreachable!()
             };

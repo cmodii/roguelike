@@ -11,7 +11,7 @@ use tcod::input::{self, Event};
 use crate::player::{PLAYER, PlayerAction, handle_keys};
 use crate::Tcod;
 use crate::renderer::*;
-use crate::object::Object;
+use crate::object::{Object, ObjectBuilder};
 use crate::map::{make_map, Map, Tile};
 use crate::components::*;
 use crate::monsters::ai_take_turn;
@@ -70,15 +70,23 @@ pub fn main_menu(tcod: &mut Tcod) {
 }
 
 pub fn new_game(tcod: &mut Tcod) -> (Game, Vec<Object>) {
-    let mut player: Object = Object::new(-1, -1, '@', WHITE, "PLAYER", true);
-    player.alive = true;
-    player.fighter = Some(Fighter {
-       max_hp: 30,
-       hp: 30,
-       defense: 0,
-       power: 5,
-       on_death: DeathCallback::Player
-    });
+    let player: Object = ObjectBuilder::new()
+        .pos(-1, -1)
+        .skin('@')
+        .color(WHITE)
+        .name("PLAYER")
+        .alive(true)
+        .blocks(true)
+        .fighter(Fighter {
+           max_hp: 30,
+           hp: 30,
+           defense: 0,
+           power: 5,
+           xp: 0,
+           on_death: DeathCallback::Player
+        })
+        .level(1)
+        .build();
 
     let mut objects = vec![player];
 

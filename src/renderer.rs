@@ -128,6 +128,14 @@ pub fn render(tcod: &mut Tcod, game: &mut Game, objects: &[Object], fov_recomput
         DARK_RED
     );
 
+    tcod.panel.print_ex(
+        1, 
+        3, 
+        BackgroundFlag::None, 
+        TextAlignment::Left, 
+        format!("Level: {}", game.level)
+    );
+
     // render messages
     let mut y = MSG_HEIGHT as i32;
     for &(ref msg, color) in game.messages.iter().rev() {
