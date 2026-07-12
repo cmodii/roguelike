@@ -1,6 +1,7 @@
 use crate::game::next_level;
 use crate::object::Object;
-use crate::renderer::menu;
+use crate::components::Fighter;
+use crate::renderer::{msgbox, menu};
 use crate::{Tcod, Game};
 use crate::util::*;
 use crate::inventory::{pick_item_up, drop_item, use_item, inventory_menu};
@@ -8,14 +9,52 @@ use crate::inventory::{pick_item_up, drop_item, use_item, inventory_menu};
 use tcod::input::{Key, KeyCode};
 
 pub const PLAYER: usize = 0;
-pub const LEVEL_UP_INITIAL: i32 = 200;
-pub const LEVEL_UP_FACTOR: i32 = 150;
+
+const LEVEL_UP_SCREEN_WIDTH: i32 = 40;
+const CHARACTER_SCREEN_WIDTH: i32 = 40; 
+
+const LEVEL_UP_INITIAL: i32 = 200;
+const LEVEL_UP_FACTOR: i32 = 150;
+const HP_LEVELUP_INCREASE: i32 = 20;
+const ATTACK_LEVELUP_INCREASE: i32 = 1;
+const DEFENSE_LEVELUP_INCREASE: i32 = 1;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum PlayerAction {
     TookTurn,
     DidntTakeTurn,
     Exit
+}
+
+pub fn level_up(tcod: &mut Tcod, _game: &mut Game, objects: &mut [Object]) {
+    let player: &mut Object = &mut objects[PLAYER];
+    let player_fighter: &mut Fighter = player.fighter.as_mut().unwrap();
+    let level_up_xp: i32 = LEVEL_UP_INITIAL + player.level * LEVEL_UP_FACTOR;
+    
+    if player_fighter.xp >= level_up_xp {
+        player.level += 1;
+        player_fighter.xp -= level_up_xp;
+        
+        let choice: Option<usize> = menu(
+            "Choose a stat to raise:", 
+            &[
+                format!("Vigor ({} HP -> {} HP)", player_fighter.max_hp, player_fighter.max_hp + HP_LEVELUP_INCREASE),
+                format!("Strength (+1 attack, {} -> {}", player_fighter.power, player_fighter.power + ATTACK_LEVELUP_INCREASE),
+                format!("Agility (+1 defense, {} -> {}", player_fighter.defense, player_fighter.defense + DEFENSE_LEVELUP_INCREASE)
+            ], 
+            LEVEL_UP_SCREEN_WIDTH, 
+            &mut tcod.root
+        );
+
+        match choice {
+            Some(0) => player_fighter.max_hp += 20,
+            Some(1) => player_fighter.power += 1,
+            Some(2) => player_fighter.defense += 1,
+            _ => player_fighter.max_hp += 20
+        }
+
+        player.heal(player.fighter.as_ref().map_or(0, |f| f.max_hp));     
+    }
 }
 
 pub fn player_take_turn(dx: i32, dy: i32, game: &mut Game, objects: &mut [Object]) {
@@ -107,6 +146,28 @@ pub fn handle_keys(tcod: &mut Tcod, game: &mut Game, objects: &mut Vec<Object>) 
                     _ => {}
                 }
             }
+            
+            DidntTakeTurn
+        }
+        (_, 'c', true) => {
+            let player = &objects[PLAYER];
+            let levelup_xp = LEVEL_UP_INITIAL + player.level * LEVEL_UP_FACTOR;
+            let fighter = &player.fighter.unwrap_or_default();
+
+            let msg = format!(
+                "Character information
+    
+    Level: {}
+    Experience: {}
+    Experience to level up: {}
+    
+    Maximum HP: {}
+    Attack: {}
+    Defense: {}",
+            player.level, fighter.xp, levelup_xp, fighter.max_hp, fighter.power, fighter.defense
+            );
+
+            msgbox(&msg, CHARACTER_SCREEN_WIDTH, &mut tcod.root);
             
             DidntTakeTurn
         }

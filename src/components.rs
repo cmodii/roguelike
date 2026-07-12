@@ -17,6 +17,19 @@ pub struct Fighter {
     pub on_death: DeathCallback
 }
 
+impl Default for Fighter {
+    fn default() -> Self {
+        Fighter {
+           max_hp: 30,
+           hp: 30,
+           defense: 0,
+           power: 5,
+           xp: 0,
+           on_death: DeathCallback::Player
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum Ai {
     Basic,

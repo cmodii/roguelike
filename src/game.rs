@@ -8,7 +8,7 @@ use tcod::colors::*;
 use tcod::console::Console;
 use tcod::input::{self, Event};
  
-use crate::player::{PLAYER, PlayerAction, handle_keys};
+use crate::player::{self, PLAYER, PlayerAction, handle_keys};
 use crate::Tcod;
 use crate::renderer::*;
 use crate::object::{Object, ObjectBuilder};
@@ -180,6 +180,7 @@ pub fn play_game(tcod: &mut Tcod, game: &mut Game, objects: &mut Vec<Object>) {
         render(tcod, game, objects, fov_recompute);
 
         tcod.root.flush();
+        player::level_up(tcod, game, objects);
 
         previous_player_position = objects[PLAYER].pos();
         process_time(game);

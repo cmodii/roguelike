@@ -204,6 +204,10 @@ fn cast_lightning(_inventory_id: usize, tcod: &mut Tcod, game: &mut Game, object
 
         if let Some(xp) = objects[target_id].take_damage(LIGHTNING_DAMAGE) {
             objects[PLAYER].fighter.as_mut().unwrap().xp += xp;
+            game.messages.add(
+                format!("+{} XP", xp),
+                ORANGE
+            );
         }
         UseResult::UsedUp
     } else {

@@ -113,7 +113,7 @@ pub fn generate_monsters(room: Room, map: &Map, objects: &mut Vec<Object>) {
                             hp: 5,
                             defense: 1,
                             power: 2,
-                            xp: 35,
+                            xp: 75,
                             on_death: DeathCallback::Monster
                         })
                         .ai(Ai::Basic)
@@ -132,7 +132,7 @@ pub fn generate_monsters(room: Room, map: &Map, objects: &mut Vec<Object>) {
                             hp: 7,
                             defense: 2,
                             power: 3,
-                            xp: 25,
+                            xp: 50,
                             on_death: DeathCallback::Monster
                         })
                         .ai(Ai::Basic)
@@ -149,8 +149,8 @@ pub fn generate_monsters(room: Room, map: &Map, objects: &mut Vec<Object>) {
                         .fighter(Fighter {
                             max_hp: 15,
                             hp: 15,
-                            defense: 5,
-                            power: 7,
+                            defense: 2,
+                            power: 5,
                             xp: 250,
                             on_death: DeathCallback::Monster
                         })

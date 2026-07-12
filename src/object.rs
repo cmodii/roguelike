@@ -127,6 +127,10 @@ impl Object {
             );
             if let Some(xp) = target.take_damage(damage) {
                 self.fighter.as_mut().unwrap().xp += xp;
+                msg.add(
+                    format!("+{} XP", xp),
+                    ORANGE
+                );
             }
         } else {
             msg.add(
