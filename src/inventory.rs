@@ -2,6 +2,7 @@ use crate::map::{Room, Map, MAX_ITEMS_PER_ROOM, is_blocked};
 use crate::{player::PLAYER, game::Time, components::*};
 use crate::object::{Object, ObjectBuilder};
 use crate::{Tcod, Game, renderer, game::Time::*};
+use crate::game::{Transition, from_dungeon_level};
 
 use itertools::Itertools;
 use rand::prelude::*;
@@ -20,8 +21,25 @@ const LIGHTNING_DAMAGE: i32 = 6;
 const CONFUSION_RANGE: i32 = 10;
 const CONFUSION_LENGTH: i32 = 5;
 
-const ITEMS: [(&str, f32);4] = [
-    ("Healing Potion", 5.0), ("Lightning Spell", 2.0), ("Time Amulet", 1.0), ("Confusion Spell", 2.0)
+const ITEMS: [(&str, &[Transition]);4] = [
+    ("Healing Potion", &[
+        Transition {level: 3, value: 1.5},
+        Transition {level: 5, value: 3.0},
+        Transition {level: 7, value: 6.0}
+    ]),
+    ("Lightning Spell", &[
+        Transition {level: 3, value: 1.5},
+        Transition {level: 5, value: 3.0},
+        Transition {level: 7, value: 6.0}
+    ]), ("Time Amulet", &[
+        Transition {level: 3, value: 1.5},
+        Transition {level: 5, value: 3.0},
+        Transition {level: 7, value: 6.0}
+    ]), ("Confusion Spell", &[
+        Transition {level: 3, value: 1.5},
+        Transition {level: 5, value: 3.0},
+        Transition {level: 7, value: 6.0}
+    ])
 ];
 
 enum UseResult {
@@ -43,7 +61,7 @@ pub fn inventory_menu(inventory: &[Object], header: &str, root: &mut Root) -> Op
     }
 }
 
-pub fn generate_items(room: Room, map: &Map, objects: &mut Vec<Object>) {
+pub fn generate_items(room: Room, map: &Map, objects: &mut Vec<Object>, level: u32) {
     let mut rng = rand::rng();
     let num_items = rng.random_range(0..=MAX_ITEMS_PER_ROOM);
 
@@ -52,7 +70,11 @@ pub fn generate_items(room: Room, map: &Map, objects: &mut Vec<Object>) {
         let y = rng.random_range(room.y1+1..room.y2);
 
         if !is_blocked(x, y, map, objects) {
-            let dist = WeightedIndex::new(ITEMS.iter().map(|f| f.1)).unwrap();
+            let dist = WeightedIndex::new(
+                ITEMS
+                .iter()
+                .map(|f| from_dungeon_level(f.1, level))
+            ).unwrap();
             
             let item = match ITEMS[dist.sample(&mut rng)].0 {
                 "Healing Potion" => {

@@ -12,7 +12,7 @@ pub const MAX_ITEMS_PER_ROOM: i32 = 2;
 pub type Map = Vec<Tile>;
 
 // all map creation logic integrated here, handles only 1 screen (map)
-pub fn make_map(objects: &mut Vec<Object>) -> Map {
+pub fn make_map(objects: &mut Vec<Object>, level :u32) -> Map {
     // fill map with blocked tiles
     let mut map = vec![Tile::wall(); (MAP_WIDTH*MAP_HEIGHT) as usize];
 
@@ -58,8 +58,8 @@ pub fn make_map(objects: &mut Vec<Object>) -> Map {
 
     rooms.iter().for_each(|room| {
         create_room(*room, &mut map);
-        generate_monsters(*room, &map, objects);
-        generate_items(*room, &map, objects);
+        generate_monsters(*room, &map, objects, level);
+        generate_items(*room, &map, objects, level);
     });
 
     let (stairs_x, stairs_y): (i32, i32) = rooms.last()

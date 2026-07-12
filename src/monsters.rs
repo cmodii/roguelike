@@ -1,3 +1,4 @@
+use crate::game::{from_dungeon_level, Transition};
 use crate::map::{Room, Map, MAX_MONSTER_PER_ROOM, is_blocked};
 use crate::components::*;
 use crate::object::{Object, ObjectBuilder};
@@ -9,8 +10,27 @@ use rand::distr::weighted::{WeightedIndex};
 use tcod::colors;
 
 // (MONSTER,PROBABILITY OF SPAWNING) key: 3.0 -> 30%
-const MONSTERS: [(&str, f32);4] = [
-    ("orc", 3.0), ("troll", 3.0), ("skaven", 3.0), ("demon", 1.0)
+const MONSTERS: [(&str, &[Transition]);4] = [
+    ("orc", &[
+        Transition {level: 3, value: 1.5},
+        Transition {level: 5, value: 3.0},
+        Transition {level: 7, value: 6.0}
+    ]), 
+    ("troll", &[
+        Transition {level: 3, value: 6.0},
+        Transition {level: 5, value: 2.0},
+        Transition {level: 7, value: 1.0}
+    ]), 
+    ("skaven", &[
+        Transition {level: 3, value: 7.0},
+        Transition {level: 5, value: 3.0},
+        Transition {level: 7, value: 5.0}
+    ]), 
+    ("demon", &[
+        Transition {level: 3, value: 0.0},
+        Transition {level: 5, value: 2.0},
+        Transition {level: 7, value: 7.0}
+    ])
 ];
 
 pub fn ai_take_turn(ai_id: usize, tcod: &Tcod, game: &mut Game, objects: &mut [Object]) {
@@ -77,7 +97,7 @@ fn ai_confused(
     }
 }
 
-pub fn generate_monsters(room: Room, map: &Map, objects: &mut Vec<Object>) {
+pub fn generate_monsters(room: Room, map: &Map, objects: &mut Vec<Object>, level: u32) {
     let mut rng: ThreadRng = rand::rng();
     let monster_amount = rng.random_range(0..=MAX_MONSTER_PER_ROOM);
 
@@ -86,7 +106,11 @@ pub fn generate_monsters(room: Room, map: &Map, objects: &mut Vec<Object>) {
         let y: i32 = rng.random_range(room.y1+1..room.y2);
 
         if !is_blocked(x, y, map, objects) {
-            let dist = WeightedIndex::new(MONSTERS.iter().map(|s| s.1)).unwrap();
+            let dist = WeightedIndex::new(
+                MONSTERS
+                .iter()
+                .map(|s| from_dungeon_level(s.1, level))
+            ).unwrap();
             
             let monster: Object = match MONSTERS[dist.sample(&mut rng)].0 {
                 "orc" => {

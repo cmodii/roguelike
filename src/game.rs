@@ -25,11 +25,22 @@ pub struct Game {
     pub level: u32
 }
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub enum Time {
     Stasis(i32),
     Resume(i32)
+}
+
+pub struct Transition {
+    pub level: u32,
+    pub value: f32
+}
+
+pub fn from_dungeon_level(table: &[Transition], level: u32) -> f32 {
+    table
+        .iter()
+        .find(|transition| transition.level >= level)
+        .map_or(0.0, |transition| transition.value)
 }
 
 pub fn main_menu(tcod: &mut Tcod) {
@@ -91,7 +102,7 @@ pub fn new_game(tcod: &mut Tcod) -> (Game, Vec<Object>) {
     let mut objects = vec![player];
 
     let mut game = Game {
-        map: make_map(&mut objects),
+        map: make_map(&mut objects, 1),
         messages: Messages::new(),
         inventory: vec![],
         time: Time::Resume(-1),
@@ -114,7 +125,7 @@ pub fn initialise_fov(tcod: &mut Tcod, map: &Map) {
 pub fn next_level(tcod: &mut Tcod, game: &mut Game, objects: &mut Vec<Object>) {
     objects.truncate(1);
     game.level += 1;
-    game.map = make_map(objects);
+    game.map = make_map(objects, game.level);
     game.messages.add("You descend deeper into the dungeon..", DARK_YELLOW);
     
     initialise_fov(tcod, &game.map);
