@@ -5,7 +5,13 @@ use crate::util::*;
 use crate::{Tcod, Game, player::PLAYER};
 
 use rand::prelude::*;
+use rand::distr::weighted::{WeightedIndex};
 use tcod::colors;
+
+// (MONSTER,PROBABILITY OF SPAWNING) key: 3.0 -> 30%
+const MONSTERS: [(&str, f32);4] = [
+    ("orc", 3.0), ("troll", 3.0), ("skaven", 3.0), ("demon", 1.0)
+];
 
 pub fn ai_take_turn(ai_id: usize, tcod: &Tcod, game: &mut Game, objects: &mut [Object]) {
     if let Some(ai) = objects[ai_id].ai.take() {
@@ -80,8 +86,10 @@ pub fn generate_monsters(room: Room, map: &Map, objects: &mut Vec<Object>) {
         let y: i32 = rng.random_range(room.y1+1..room.y2);
 
         if !is_blocked(x, y, map, objects) {
-            let mut monster: Object = match rng.random::<f32>() {
-                0.0..0.3 => {
+            let dist = WeightedIndex::new(MONSTERS.iter().map(|s| s.1)).unwrap();
+            
+            let monster: Object = match MONSTERS[dist.sample(&mut rng)].0 {
+                "orc" => {
                     ObjectBuilder::new()
                         .pos(x, y)
                         .skin('O')
@@ -100,7 +108,7 @@ pub fn generate_monsters(room: Room, map: &Map, objects: &mut Vec<Object>) {
                         .ai(Ai::Basic)
                         .build()
                 },
-                0.3..0.6 => {
+                "troll" => {
                     ObjectBuilder::new()
                         .pos(x, y)
                         .skin('T')
@@ -119,7 +127,7 @@ pub fn generate_monsters(room: Room, map: &Map, objects: &mut Vec<Object>) {
                         .ai(Ai::Basic)
                         .build()
                 },
-                0.6..0.9 => {
+                "skaven" => {
                     ObjectBuilder::new()
                         .pos(x, y)
                         .skin('S')
@@ -138,7 +146,7 @@ pub fn generate_monsters(room: Room, map: &Map, objects: &mut Vec<Object>) {
                         .ai(Ai::Basic)
                         .build()
                 },
-                0.9..1.0 => {
+                "demon" => {
                     ObjectBuilder::new()
                         .pos(x, y)
                         .skin('D')
@@ -160,7 +168,6 @@ pub fn generate_monsters(room: Room, map: &Map, objects: &mut Vec<Object>) {
                 _ => unreachable!()
             };
 
-            monster.alive = true;
             objects.push(monster);
         }
     }

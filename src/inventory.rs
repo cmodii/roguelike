@@ -1,10 +1,12 @@
 use crate::map::{Room, Map, MAX_ITEMS_PER_ROOM, is_blocked};
 use crate::{player::PLAYER, game::Time, components::*};
 use crate::object::{Object, ObjectBuilder};
-
 use crate::{Tcod, Game, renderer, game::Time::*};
+
 use itertools::Itertools;
 use rand::prelude::*;
+use rand::distr::weighted::{WeightedIndex};
+
 use tcod::console::Root;
 use tcod::colors::*;
 
@@ -17,6 +19,10 @@ const LIGHTNING_RANGE: i32 = 5;
 const LIGHTNING_DAMAGE: i32 = 6;
 const CONFUSION_RANGE: i32 = 10;
 const CONFUSION_LENGTH: i32 = 5;
+
+const ITEMS: [(&str, f32);4] = [
+    ("Healing Potion", 5.0), ("Lightning Spell", 2.0), ("Time Amulet", 1.0), ("Confusion Spell", 2.0)
+];
 
 enum UseResult {
     UsedUp,
@@ -46,8 +52,10 @@ pub fn generate_items(room: Room, map: &Map, objects: &mut Vec<Object>) {
         let y = rng.random_range(room.y1+1..room.y2);
 
         if !is_blocked(x, y, map, objects) {
-            let item = match rng.random::<f64>() {
-                0.0..0.5 => {
+            let dist = WeightedIndex::new(ITEMS.iter().map(|f| f.1)).unwrap();
+            
+            let item = match ITEMS[dist.sample(&mut rng)].0 {
+                "Healing Potion" => {
                     ObjectBuilder::new()
                         .pos(x, y)
                         .skin('!')
@@ -56,7 +64,7 @@ pub fn generate_items(room: Room, map: &Map, objects: &mut Vec<Object>) {
                         .item(Item::Heal)
                         .build()
                 },
-                0.5..0.7 => {
+                "Time Amulet" => {
                     ObjectBuilder::new()
                         .pos(x, y)
                         .skin('x')
@@ -65,7 +73,7 @@ pub fn generate_items(room: Room, map: &Map, objects: &mut Vec<Object>) {
                         .item(Item::StopTime)
                         .build()
                 }
-                0.7..1.0 => {
+                "Lightning Spell" => {
                     ObjectBuilder::new()
                         .pos(x, y)
                         .skin('#')
@@ -74,7 +82,7 @@ pub fn generate_items(room: Room, map: &Map, objects: &mut Vec<Object>) {
                         .item(Item::Lightning)
                         .build()
                 }
-                0.0..1.0 => {
+                "Confusion Spell" => {
                     ObjectBuilder::new()
                         .pos(x, y)
                         .skin('#')
