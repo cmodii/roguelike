@@ -85,14 +85,14 @@ pub fn new_game(tcod: &mut Tcod) -> (Game, Vec<Object>) {
         .pos(-1, -1)
         .skin('@')
         .color(WHITE)
-        .name("PLAYER")
+        .name(player::PLAYER_NAME)
         .alive(true)
         .blocks(true)
         .fighter(Fighter {
-           max_hp: 30,
+           base_max_hp: 30,
            hp: 30,
-           defense: 0,
-           power: 5,
+           base_defense: 0,
+           base_power: 5,
            xp: 0,
            on_death: DeathCallback::Player
         })
@@ -109,9 +109,28 @@ pub fn new_game(tcod: &mut Tcod) -> (Game, Vec<Object>) {
         level: 1
     };
 
+    game.inventory.push(
+        ObjectBuilder::new()
+            .pos(0, 0)
+            .skin('-')
+            .color(LIGHT_GREY)
+            .name("Dagger")
+            .item(Item::Equipment)
+            .equipment(Equipment { 
+                slot: Slot::RightHand,
+                equipped: false,
+                power_bonus: 2,
+                defense_bonus: 0,
+                max_hp_bonus: 0
+            })
+            .build()
+    );
+
     initialise_fov(tcod, &game.map);
 
-    game.messages.add("Welcome player to the dungeon!", YELLOW);
+    game.messages.add("Welcome to the dungeon player!", YELLOW);
+    game.messages.add("Tip: Press NumPad1 to open the controls menu", WHITE);
+    game.messages.add("Tip: You start your journey with a dagger in your inventory", WHITE);
     (game, objects)
 }
 

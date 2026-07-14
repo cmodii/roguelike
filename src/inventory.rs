@@ -21,7 +21,7 @@ const LIGHTNING_DAMAGE: i32 = 6;
 const CONFUSION_RANGE: i32 = 10;
 const CONFUSION_LENGTH: i32 = 5;
 
-const ITEMS: [(&str, &[Transition]);4] = [
+const ITEMS: [(&str, &[Transition]);7] = [
     ("Healing Potion", &[
         Transition {level: 3, value: 1.5},
         Transition {level: 5, value: 3.0},
@@ -39,17 +39,50 @@ const ITEMS: [(&str, &[Transition]);4] = [
         Transition {level: 3, value: 1.5},
         Transition {level: 5, value: 3.0},
         Transition {level: 7, value: 6.0}
+    ]), ("Sword", &[
+        Transition {level: 3, value: 3.0},
+        Transition {level: 5, value: 4.0},
+        Transition {level: 7, value: 7.0}
+    ]), ("Shield", &[
+        Transition {level: 3, value: 3.0},
+        Transition {level: 5, value: 5.0},
+        Transition {level: 7, value: 7.0}
+    ]), ("Cloak", &[
+        Transition {level: 3, value: 3.0},
+        Transition {level: 5, value: 5.0},
+        Transition {level: 7, value: 7.0}
     ])
 ];
 
 enum UseResult {
     UsedUp,
+    UsedAndKept,
     Cancelled,
+}
+
+pub fn get_equipped_in_slot(slot: Slot, inventory: &[Object]) -> Option<usize> {
+    inventory
+        .iter()
+        .enumerate()
+        .find(|(_, item)| {
+            item.equipment
+                .as_ref()
+                .is_some_and(|e| e.equipped && e.slot == slot)
+        })
+        .map(|(id, _)| id)
 }
 
 pub fn inventory_menu(inventory: &[Object], header: &str, root: &mut Root) -> Option<usize> {
     let options: Vec<String> = if inventory.len() > 0 {
-        inventory.iter().map(|item| item.name.clone()).collect()
+        inventory
+            .iter()
+            .map(|item| {
+                match item.equipment {
+                    Some(equipment) if equipment.equipped => format!("{} [{}]", item.name, equipment.slot),
+                    _ => item.name.clone()
+                }
+            })
+            .collect()
     } else {
         vec!["Inventory is empty".into()]
     };
@@ -113,6 +146,54 @@ pub fn generate_items(room: Room, map: &Map, objects: &mut Vec<Object>, level: u
                         .item(Item::Confuse)
                         .build()
                 }
+                "Sword" => {
+                    ObjectBuilder::new()
+                        .pos(x, y)
+                        .skin('/')
+                        .color(SKY)
+                        .name("Sword")
+                        .item(Item::Equipment)
+                        .equipment(Equipment { 
+                            slot: Slot::RightHand,
+                            equipped: false,
+                            power_bonus: 4,
+                            defense_bonus: 0,
+                            max_hp_bonus: 0
+                        })
+                        .build()
+                }
+                "Shield" => {
+                    ObjectBuilder::new()
+                        .pos(x, y)
+                        .skin('[')
+                        .color(DARKER_ORANGE)
+                        .name("Shield")
+                        .item(Item::Equipment)
+                        .equipment(Equipment { 
+                            slot: Slot::LeftHand,
+                            equipped: false,
+                            power_bonus: 0,
+                            defense_bonus: 2,
+                            max_hp_bonus: 0
+                        })
+                        .build()
+                }
+                "Cloak" => {
+                    ObjectBuilder::new()
+                        .pos(x, y)
+                        .skin('[')
+                        .color(DARKER_ORANGE)
+                        .name("Shield")
+                        .item(Item::Equipment)
+                        .equipment(Equipment { 
+                            slot: Slot::Body,
+                            equipped: false,
+                            power_bonus: 0,
+                            defense_bonus: 2,
+                            max_hp_bonus: 0
+                        })
+                        .build()
+                }
                 _ => unreachable!()
             };
 
@@ -129,7 +210,8 @@ pub fn use_item(inventory_id: usize, tcod: &mut Tcod, game: &mut Game, objects: 
             Heal => cast_heal,
             StopTime => stop_time,
             Lightning => cast_lightning,
-            Confuse => cast_confusion
+            Confuse => cast_confusion,
+            Equipment => toggle_equipment,
         };
 
         match on_use(inventory_id, tcod, game, objects) {
@@ -140,6 +222,7 @@ pub fn use_item(inventory_id: usize, tcod: &mut Tcod, game: &mut Game, objects: 
                 );
                 game.inventory.remove(inventory_id);
             },
+            UseResult::UsedAndKept => {},
             UseResult::Cancelled => {
                 game.messages.add("Cancelled", WHITE);
             }
@@ -159,7 +242,17 @@ pub fn pick_item_up(item_id: usize, game: &mut Game, objects: &mut Vec<Object>) 
             .add(format!("Picked up {}", item.name), 
             GREEN  
         );
+        //let slot = item.equipment.map(|e| e.slot);
+        //let index = game.inventory.len();
         game.inventory.push(item);
+
+        /* auto equipping upon pick up, the 2 commented out lines are included with this segment
+        if let Some(slot) = slot {
+            if get_equipped_in_slot(slot, &game.inventory).is_none() {
+                game.inventory[index].equip(&mut game.messages);
+            }
+        }
+        */
     } else {
         game.messages
             .add(format!("Cannot pick up {}: Inventory is full.", objects[item_id].name), 
@@ -168,16 +261,33 @@ pub fn pick_item_up(item_id: usize, game: &mut Game, objects: &mut Vec<Object>) 
     }
 }
 
+pub fn drop_item(inventory_id: usize, game: &mut Game, objects: &mut Vec<Object>) {
+    if inventory_id < objects.len() {
+        let mut item: Object = game.inventory.remove(inventory_id);
+        item.set_pos(objects[PLAYER].get_x(), objects[PLAYER].get_y());
+        
+        game.messages.add(
+            format!("You dropped {}", item.name), 
+            YELLOW
+        );
+        
+        if item.equipment.is_some_and(|i| i.equipped) {
+            item.unequip(&mut game.messages);
+        }
+        
+        objects.push(item);
+    }
+}
 
 // Healing
 fn cast_heal(_inventory_id: usize, _tcod: &mut Tcod, game: &mut Game, objects: &mut [Object]) -> UseResult {
     if let Some(fighter) = objects[PLAYER].fighter {
-        if fighter.hp == fighter.max_hp {
+        if fighter.hp == objects[PLAYER].max_hp(game) {
             game.messages.add("Health already full", WHITE);
             return UseResult::Cancelled;
         } else {
             game.messages.add("Your wounds start to heal", LIGHT_GREEN);
-            objects[PLAYER].heal(HEAL_AMOUNT);
+            objects[PLAYER].heal(HEAL_AMOUNT, game);
             return UseResult::UsedUp;
         }
     }
@@ -269,16 +379,21 @@ fn cast_confusion(_inventory_id: usize, tcod: &mut Tcod, game: &mut Game, object
 
 }
 
-pub fn drop_item(inventory_id: usize, game: &mut Game, objects: &mut Vec<Object>) {
-    if inventory_id < objects.len() {
-        let mut item: Object = game.inventory.remove(inventory_id);
-        item.set_pos(objects[PLAYER].get_x(), objects[PLAYER].get_y());
+fn toggle_equipment(inventory_id: usize, _tcod: &mut Tcod, game: &mut Game, _objects: &mut [Object]) -> UseResult {
+    let equipment: Equipment = match game.inventory[inventory_id].equipment {
+        Some(equipment) => equipment,
+        None => return UseResult::Cancelled,
+    };
+
+    if equipment.equipped {
+        game.inventory[inventory_id].unequip(&mut game.messages);
+    } else {
+        if let Some(current) = get_equipped_in_slot(equipment.slot, &game.inventory) {
+            game.inventory[current].unequip(&mut game.messages);
+        }
         
-        game.messages.add(
-            format!("You dropped {}", item.name), 
-            YELLOW
-        );
-        
-        objects.push(item);
+        game.inventory[inventory_id].equip(&mut game.messages);
     }
+
+    UseResult::UsedAndKept
 }

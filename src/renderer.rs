@@ -115,7 +115,7 @@ pub fn render(tcod: &mut Tcod, game: &mut Game, objects: &[Object], fov_recomput
     // render health bar
     tcod.panel.set_default_background(BLACK);
     tcod.panel.clear();
-    let (hp, max_hp) = objects[PLAYER].fighter.map_or((0,0), |f| (f.hp, f.max_hp));
+    let (hp, max_hp) = objects[PLAYER].fighter.map_or((0,0), |f| (f.hp, f.base_max_hp));
     render_bar(
         &mut tcod.panel,
         1,

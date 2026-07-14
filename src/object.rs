@@ -3,10 +3,11 @@ use serde::{Serialize, Deserialize};
 use tcod::colors::*;
 use tcod::console::*;
 
+use crate::game::Game;
+use crate::renderer::Messages;
 use crate::map::{self, Map};
 use crate::{MAP_HEIGHT, MAP_WIDTH};
 use crate::components::*;
-
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Object {
@@ -20,7 +21,8 @@ pub struct Object {
     pub fighter: Option<Fighter>,
     pub ai: Option<Ai>,
     pub item: Option<Item>,
-    pub level: i32
+    pub level: i32,
+    pub equipment: Option<Equipment>
 }
 
 pub struct ObjectBuilder {
@@ -34,6 +36,7 @@ pub struct ObjectBuilder {
     fighter: Option<Fighter>,
     ai: Option<Ai>,
     item: Option<Item>,
+    equipment: Option<Equipment>,
     level: i32
 }
 
@@ -50,7 +53,8 @@ impl Object {
             fighter: None,
             ai: None,
             item: None,
-            level: 0
+            level: 0,
+            equipment: None
         }
     }
 
@@ -117,33 +121,97 @@ impl Object {
         None
     }
 
-    pub fn attack(&mut self, target: &mut Object, msg: &mut crate::renderer::Messages) {
-        let damage = (self.fighter.map_or(0, |f| f.power) - target.fighter.map_or(0, |f| f.defense)).abs();
+    pub fn attack(&mut self, target: &mut Object, game: &mut Game) {
+        let damage = (self.power(game) - target.defense(game)).max(0);
         
         if damage > 0 {
-            msg.add(
+            game.messages.add(
                 format!("{} attacks {} for {} points", self.name, target.name, damage),
                 LIGHTER_CRIMSON
             );
             if let Some(xp) = target.take_damage(damage) {
                 self.fighter.as_mut().unwrap().xp += xp;
-                msg.add(
+                game.messages.add(
                     format!("+{} XP", xp),
                     ORANGE
                 );
             }
         } else {
-            msg.add(
+            game.messages.add(
                 format!("{} misses {}", self.name, target.name),
                 LIGHTER_CRIMSON
             );
         }
     }
 
-    pub fn heal(&mut self, amount: i32) {
+    pub fn heal(&mut self, amount: i32, game: &Game) {
+        let max_hp = self.max_hp(game);
         if let Some(fighter) = self.fighter.as_mut() {
-            fighter.hp = (fighter.hp + amount).min(fighter.max_hp);
+            fighter.hp = (fighter.hp + amount).min(max_hp);
         }
+    }
+
+    pub fn equip(&mut self, messages: &mut Messages) {
+        if self.item.is_some() && let Some(ref mut equipment) = self.equipment {
+            if !equipment.equipped {
+                messages.add(format!("Equipped {} on {}", self.name, equipment.slot), WHITE);
+                equipment.equipped = true;
+            }
+        }
+    }
+
+    pub fn unequip(&mut self, messages: &mut Messages) {
+        if self.item.is_some() && let Some(ref mut equipment) = self.equipment {
+            if equipment.equipped {
+                messages.add(format!("Unequipped {}", self.name), WHITE);
+                equipment.equipped = false;
+            }
+        }
+    }
+    
+    pub fn get_all_equipped(&self, game: &Game) -> Vec<Equipment> {
+        if self.name.eq("player") {
+            game.inventory
+                .iter()
+                .filter(|item| item.equipment.is_some_and(|e| e.equipped))
+                .map(|item| item.equipment.unwrap())
+                .collect()
+        } else {
+            vec![]
+        }
+    }
+
+    pub fn power(&self, game: &Game) -> i32 {
+        let base_power = self.fighter.map_or(0, |f| f.base_power);
+        let bonus_power = self
+            .get_all_equipped(game)
+            .iter()
+            .map(|e| e.power_bonus)
+            .sum::<i32>();
+
+        base_power + bonus_power
+    }
+
+    pub fn defense(&self, game: &Game) -> i32 {
+        let base_defense = self.fighter.map_or(0, |f| f.base_defense);
+        let bonus_defense = self
+            .get_all_equipped(game)
+            .iter()
+            .map(|e| e.defense_bonus)
+            .sum::<i32>();
+
+        base_defense + bonus_defense
+    }
+
+    pub fn max_hp(&self, game: &Game) -> i32 {
+        let base_max_hp = self.fighter.map_or(0, |f| f.base_max_hp);
+        let bonus_max_hp = self
+            .get_all_equipped(game)
+            .iter()
+            .map(|e| e.max_hp_bonus)
+            .sum::<i32>();
+
+        base_max_hp + bonus_max_hp
     }
 }
 
@@ -160,6 +228,7 @@ impl ObjectBuilder {
             fighter: None,
             ai: None,
             item: None,
+            equipment: None,
             level: 0
         }
     }
@@ -210,6 +279,11 @@ impl ObjectBuilder {
         self
     }
 
+    pub fn equipment(mut self, equipment: Equipment) -> Self {
+        self.equipment = Some(equipment);
+        self
+    }
+
     pub fn level(mut self, level: i32) -> Self {
         self.level = level;
         self
@@ -227,6 +301,7 @@ impl ObjectBuilder {
             fighter: self.fighter, 
             ai: self.ai, 
             item: self.item, 
+            equipment: self.equipment,
             level: self.level 
         }
     }

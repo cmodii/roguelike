@@ -9,7 +9,6 @@ use rand::prelude::*;
 use rand::distr::weighted::{WeightedIndex};
 use tcod::colors;
 
-// (MONSTER,PROBABILITY OF SPAWNING) key: 3.0 -> 30%
 const MONSTERS: [(&str, &[Transition]);4] = [
     ("orc", &[
         Transition {level: 3, value: 1.5},
@@ -55,7 +54,7 @@ fn ai_basic(ai_id: usize, tcod: &Tcod, game: &mut Game, objects: &mut [Object]) 
         0.0..2.0 => {
             if objects[PLAYER].fighter.map_or(false, |f| f.hp > 0) {
                 if let Some((ai, player)) = get_mut_two(objects, ai_id, PLAYER) {
-                    ai.attack(player, &mut game.messages);
+                    ai.attack(player, game);
                 } else {
                     eprintln!("attack missed due to split_at_mut() failure");
                 }
@@ -122,10 +121,10 @@ pub fn generate_monsters(room: Room, map: &Map, objects: &mut Vec<Object>, level
                         .alive(true)
                         .blocks(true)
                         .fighter(Fighter {
-                            max_hp: 10,
+                            base_max_hp: 10,
                             hp: 10,
-                            defense: 2,
-                            power: 4,
+                            base_defense: 2,
+                            base_power: 4,
                             xp: 100,
                             on_death: DeathCallback::Monster
                         })
@@ -141,10 +140,10 @@ pub fn generate_monsters(room: Room, map: &Map, objects: &mut Vec<Object>, level
                         .alive(true)
                         .blocks(true)
                         .fighter(Fighter {
-                            max_hp: 5,
+                            base_max_hp: 5,
                             hp: 5,
-                            defense: 1,
-                            power: 2,
+                            base_defense: 1,
+                            base_power: 2,
                             xp: 75,
                             on_death: DeathCallback::Monster
                         })
@@ -160,10 +159,10 @@ pub fn generate_monsters(room: Room, map: &Map, objects: &mut Vec<Object>, level
                         .alive(true)
                         .blocks(true)
                         .fighter(Fighter {
-                            max_hp: 7,
+                            base_max_hp: 7,
                             hp: 7,
-                            defense: 2,
-                            power: 3,
+                            base_defense: 2,
+                            base_power: 3,
                             xp: 50,
                             on_death: DeathCallback::Monster
                         })
@@ -179,10 +178,10 @@ pub fn generate_monsters(room: Room, map: &Map, objects: &mut Vec<Object>, level
                         .alive(true)
                         .blocks(true)
                         .fighter(Fighter {
-                            max_hp: 15,
+                            base_max_hp: 15,
                             hp: 15,
-                            defense: 2,
-                            power: 5,
+                            base_defense: 2,
+                            base_power: 5,
                             xp: 250,
                             on_death: DeathCallback::Monster
                         })

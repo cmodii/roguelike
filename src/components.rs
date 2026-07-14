@@ -9,10 +9,10 @@ pub enum DeathCallback {
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Fighter {
-    pub max_hp: i32,
+    pub base_max_hp: i32,
     pub hp: i32,
-    pub defense: i32,
-    pub power: i32,
+    pub base_defense: i32,
+    pub base_power: i32,
     pub xp: i32,
     pub on_death: DeathCallback
 }
@@ -20,10 +20,10 @@ pub struct Fighter {
 impl Default for Fighter {
     fn default() -> Self {
         Fighter {
-           max_hp: 30,
            hp: 30,
-           defense: 0,
-           power: 5,
+           base_max_hp: 30,
+           base_defense: 0,
+           base_power: 5,
            xp: 0,
            on_death: DeathCallback::Player
         }
@@ -44,7 +44,34 @@ pub enum Item {
     Heal,
     StopTime,
     Lightning,
-    Confuse
+    Confuse,
+    Equipment
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Equipment {
+    pub slot: Slot,
+    pub equipped: bool,
+    pub power_bonus: i32,
+    pub defense_bonus: i32,
+    pub max_hp_bonus: i32
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub enum Slot {
+    LeftHand,
+    RightHand,
+    Body
+}
+
+impl std::fmt::Display for Slot {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match *self {
+            Slot::LeftHand => write!(f, "left hand"),
+            Slot::RightHand => write!(f, "right hand"),
+            Slot::Body => write!(f, "Body")
+        }
+    }
 }
 
 impl DeathCallback {
