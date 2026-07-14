@@ -1,3 +1,5 @@
+#![windows_subsystem = "windows"]
+
 mod game;
 mod object;
 mod map;
@@ -10,7 +12,6 @@ mod util;
 
 use tcod::console::*;
 use tcod::map::{FovAlgorithm, Map as FovMap};
-use tcod::input::{Key, Mouse};
 
 use crate::game::{Game, main_menu};
 use crate::object::Object;
@@ -37,8 +38,8 @@ struct Tcod {
     con: Offscreen,
     panel: Offscreen,
     fov: FovMap,
-    key: Key,
-    mouse: Mouse
+    //key: Key,
+    //mouse: Mouse
 }
 
 fn main() {
@@ -49,7 +50,7 @@ fn main() {
         .font_type(FontType::Greyscale)
         .size(SCREEN_WIDTH, SCREEN_HEIGHT)
         .fullscreen(false)
-        .title("Rogue Test")
+        .title("Roguelike")
         .init();
 
     let mut tcod = Tcod {
@@ -57,8 +58,8 @@ fn main() {
         con: Offscreen::new(MAP_WIDTH, MAP_HEIGHT),
         panel: Offscreen::new(MAP_WIDTH, PANEL_HEIGHT),
         fov: FovMap::new(MAP_WIDTH, MAP_HEIGHT),
-        key: Default::default(),
-        mouse: Default::default()
+        //key: Default::default(),
+        //mouse: Default::default()
     };
 
     main_menu(&mut tcod);

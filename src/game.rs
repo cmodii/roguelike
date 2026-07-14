@@ -6,7 +6,6 @@ use serde::{Serialize, Deserialize};
 
 use tcod::colors::*;
 use tcod::console::Console;
-use tcod::input::{self, Event};
  
 use crate::player::{self, PLAYER, PlayerAction, handle_keys};
 use crate::Tcod;
@@ -199,12 +198,14 @@ pub fn play_game(tcod: &mut Tcod, game: &mut Game, objects: &mut Vec<Object>) {
     // main game loop
     while !tcod.root.window_closed() {
         tcod.con.clear();
-        
+
+        /*
         match input::check_for_event(input::MOUSE | input::KEY) {
             Some((_, Event::Mouse(m))) => tcod.mouse = m,
             Some((_, Event::Key(k))) => tcod.key = k,
             _ => tcod.key = Default::default()
         }
+        */
         
         let fov_recompute: bool = previous_player_position != objects[PLAYER].pos();
         render(tcod, game, objects, fov_recompute);

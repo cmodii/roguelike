@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-tcod = { git = "https://github.com/tomassedovic/tcod-rs.git", features = ["serialization"] }
+tcod = { version = "0.15", features = ["serialization"] }
 rand = "0.10.1"
 itertools = "0.15.0"
 serde = { version = "1.0", features = ["derive"] }

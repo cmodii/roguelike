@@ -148,7 +148,7 @@ pub fn render(tcod: &mut Tcod, game: &mut Game, objects: &[Object], fov_recomput
         tcod.panel.print_rect(MSG_X, y, MSG_WIDTH, 0, msg);
     }
 
-
+    /*
     let (x, y) = (tcod.mouse.cx as i32, tcod.mouse.cy as i32);
 
     let objects_under_mouse: String = objects
@@ -166,6 +166,7 @@ pub fn render(tcod: &mut Tcod, game: &mut Game, objects: &[Object], fov_recomput
         TextAlignment::Left,
         objects_under_mouse
     );
+    */
 
     blit(
         &tcod.panel,
