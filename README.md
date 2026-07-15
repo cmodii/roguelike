@@ -58,5 +58,5 @@ You can configure spawn-rates of items/monsters and their stats in their respect
 ## Credits
 This project was made possible with the following open source packages:
 * [Tomas Sedovic's port](https://tomassedovic.github.io/roguelike-tutorial/)
-* [Rust bindings for libtcod](https://github.com/tomassedovic/tcod-rs)
+* [tcod-rs](https://github.com/tomassedovic/tcod-rs)
 * [Serde](https://crates.io/crates/serde)
