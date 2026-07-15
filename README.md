@@ -56,7 +56,7 @@ You can configure spawn-rates of items/monsters and their stats in their respect
 > Note that you'll have to create your own custom logic for one-item items if it's not within bounds of [pre-existing ones](https://github.com/cmodii/roguelike/blob/f3bdcf1f166a4db6022e6334acb6d160674ee74d/src/inventory.rs#L209).
 
 ## Credits
-This project was made possible with the following open-source projects:
+This project was made possible with the following open source packages:
 * [Tomas Sedovic's port](https://tomassedovic.github.io/roguelike-tutorial/)
 * [Rust bindings for libtcod](https://github.com/tomassedovic/tcod-rs)
 * [Serde](https://crates.io/crates/serde)
