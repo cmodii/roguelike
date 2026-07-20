@@ -181,16 +181,16 @@ pub fn generate_items(room: Room, map: &Map, objects: &mut Vec<Object>, level: u
                 "Cloak" => {
                     ObjectBuilder::new()
                         .pos(x, y)
-                        .skin('[')
-                        .color(DARKER_ORANGE)
-                        .name("Shield")
+                        .skin('U')
+                        .color(DARKER_TURQUOISE)
+                        .name("Cloak")
                         .item(Item::Equipment)
                         .equipment(Equipment { 
                             slot: Slot::Body,
                             equipped: false,
                             power_bonus: 0,
-                            defense_bonus: 2,
-                            max_hp_bonus: 0
+                            defense_bonus: 1,
+                            max_hp_bonus: 10
                         })
                         .build()
                 }
